@@ -146,6 +146,7 @@ def parse_args():
     parser.add_argument('-p', '--preview', default=False, action='store_true', help="List the most recent few notes")
     parser.add_argument('-d', '--delete', action='store', help="Delete a note with a given ID")
     parser.add_argument('-x', '--clear', action='store_true', help="Delete a all notes")
+    parser.add_argument('message', metavar='message', nargs='?', type=str, help="Add a note")
     args = parser.parse_args()
     return args
 
