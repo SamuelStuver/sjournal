@@ -11,11 +11,15 @@ class ScratchPad:
         self.create_connection()
 
     def handle_args(self):
-        if self.args.list:
-            return self.list
-        elif self.args.preview:
-            return self.preview
-        return self.add_note
+        for command in ['list', 'preview', 'delete', 'clear']:
+            func = getattr(self, command)
+            value = getattr(self.args, command)
+            if value:
+                return func
+        if self.args.message:
+            return self.add_note
+        # Default action
+        return self.preview
 
     def create_connection(self):
         try:
@@ -31,7 +35,8 @@ class ScratchPad:
     def run(self):
         self.setup()
         action = self.handle_args()
-        action()
+        if action:
+            action()
         self.close_connection()
 
     def setup(self):
@@ -66,7 +71,10 @@ class ScratchPad:
         note_data = {"category": self.args.category, "content": self.args.message}
         cursor = self.connection.cursor()
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
-        most_recent_id = cursor.fetchone()[0]
+        try:
+            most_recent_id = cursor.fetchone()[0]
+        except TypeError:
+            most_recent_id = 0
         note = Note(most_recent_id+1, note_data["category"], note_data["content"])
         self.insert_into_table("notes", note)
         self.connection.commit()
@@ -85,6 +93,18 @@ class ScratchPad:
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
             print(note)
+
+    def clear(self):
+        cursor = self.connection.cursor()
+        cursor.execute('DELETE FROM notes')
+        self.connection.commit()
+
+    def delete(self):
+        cursor = self.connection.cursor()
+        id_to_delete = self.args.delete
+        cursor.execute(f'DELETE FROM notes WHERE id={id_to_delete}')
+        self.connection.commit()
+
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
@@ -120,10 +140,12 @@ class Note:
 def parse_args():
     # Read environment from command line args
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--category', default="General", help="Choose a category under which to put the note")
+    parser.add_argument('-c', '--category', default="General", action='store', help="Choose a category under which to put the note")
     parser.add_argument('-m', '--message', default=False, action='store', help="Enter the contents of the note")
     parser.add_argument('-l', '--list', default=False, action='store_true', help="List all notes in the database")
     parser.add_argument('-p', '--preview', default=False, action='store_true', help="List the most recent few notes")
+    parser.add_argument('-d', '--delete', action='store', help="Delete a note with a given ID")
+    parser.add_argument('-x', '--clear', action='store_true', help="Delete a all notes")
     args = parser.parse_args()
     return args
 
