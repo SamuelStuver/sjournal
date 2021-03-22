@@ -63,7 +63,7 @@ class ScratchPad:
         self.connection.commit()
 
     def add(self):
-        note_data = {"category": self.args.category, "content": self.args.message}
+        note_data = {"category": self.args.category, "content": ' '.join(self.args.content)}
         cursor = self.connection.cursor()
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
         try:
@@ -96,21 +96,8 @@ class ScratchPad:
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
             print(note)
 
-    def preview(self):
-        N = 5
-        cursor = self.connection.cursor()
-        cursor.execute(f"SELECT * FROM notes ORDER BY id DESC LIMIT {N}")
-        for item in cursor.fetchall():
-            note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
-            print(note)
-
-    def clear(self):
-        cursor = self.connection.cursor()
-        cursor.execute('DELETE FROM notes')
-        self.connection.commit()
-
     def delete(self):
-        ids_to_delete = range_parser(self.args.delete)
+        ids_to_delete = range_parser(self.args.delete_criteria)
         cursor = self.connection.cursor()
         for tagged_id in ids_to_delete:
             id = tagged_id[0]
@@ -125,6 +112,11 @@ class ScratchPad:
                 max_id = cursor.fetchone()[0]
                 for i in range(id,max_id+1):
                     cursor.execute(f'DELETE FROM notes WHERE id={i}')
+        self.connection.commit()
+
+    def clear(self):
+        cursor = self.connection.cursor()
+        cursor.execute('DELETE FROM notes')
         self.connection.commit()
 
 
@@ -166,32 +158,33 @@ def parse_args():
 
     # Add command
     parser_add = subparsers.add_parser('add', help='Add a note to the database')
+    parser_add.add_argument('content', nargs='*', action='store', type=str, default=None,
+                            help="Content of note")
     parser_add.add_argument('-c', '--category', default='General', action='store',
                             help="Choose a category for the note to be added under")
 
     # List command
     parser_list = subparsers.add_parser('list', help='List notes in the database')
-    parser_list.add_argument('quantity', nargs='?', default=5, type=str)
+    parser_list.add_argument('quantity', nargs='?', action='store', default=5, type=str)
 
     # Delete command
-    # parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
+    parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
+    parser_delete.add_argument('delete_criteria', nargs='*', action='store', type=str)
+
+    # Erase command
+    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the database')
+
+    # Help command
+    parser_help = subparsers.add_parser('help', help='Display help text')
+    parser_help.add_argument('help', action='store_true', default=None)
 
     # Search command
     # parser_search = subparsers.add_parser('search', help='List notes matching search term')
 
-
-
-
-
-
-    # parser.add_argument('-c', '--category', default="General", action='store', help="Choose a category under which to put the note")
-    # parser.add_argument('-m', '--message', default=False, action='store', help="Enter the contents of the note")
-    # parser.add_argument('-l', '--list', default=False, action='store_true', help="List all notes in the database")
-    # parser.add_argument('-p', '--preview', default=False, action='store_true', help="List the most recent few notes")
-    # parser.add_argument('-d', '--delete', action='store', nargs='+', type=str, help="Delete a note with a given ID")
-    # parser.add_argument('-x', '--clear', action='store_true', help="Delete a all notes")
-    # parser.add_argument('message', metavar='message', nargs='?', type=str, help="Add a note")
     args = parser.parse_args()
+    if args.help:
+        parser.print_help()
+        exit()
     print(args)
     return args
 
@@ -219,13 +212,13 @@ def range_parser(item_list):
                     else:
                         val = int(match.group(1))
                         new_list.append((int(val), modifier))
+    print("**** ", new_list)
     return new_list
 
 
 if __name__ == "__main__":
     args = parse_args()
     db_file = r"C:\sqlite\db\notes.db"
-
     scratchpad = ScratchPad(db_file, args)
     scratchpad.run()
     # scratchpad.add_note()
