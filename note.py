@@ -2,6 +2,7 @@ import argparse
 from datetime import datetime
 import sqlite3
 from sqlite3 import Error
+import re
 
 
 class ScratchPad:
@@ -11,15 +12,11 @@ class ScratchPad:
         self.create_connection()
 
     def handle_args(self):
-        for command in ['list', 'preview', 'delete', 'clear']:
-            func = getattr(self, command)
-            value = getattr(self.args, command)
-            if value:
-                return func
-        if self.args.message:
-            return self.add_note
-        # Default action
-        return self.preview
+        # If a command was specified, use it. Otherwise, assume List command
+        if self.args.command:
+            return getattr(self, self.args.command)
+        else:
+            return self.list
 
     def create_connection(self):
         try:
@@ -62,12 +59,10 @@ class ScratchPad:
 
     def insert_into_table(self, table_name, note):
         cursor = self.connection.cursor()
-        cursor.execute(
-            f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)",
-            note.dict)
+        cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)", note.dict)
         self.connection.commit()
 
-    def add_note(self):
+    def add(self):
         note_data = {"category": self.args.category, "content": self.args.message}
         cursor = self.connection.cursor()
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
@@ -81,7 +76,22 @@ class ScratchPad:
 
     def list(self):
         cursor = self.connection.cursor()
-        cursor.execute(f"SELECT * FROM notes ORDER BY id DESC")
+        query = "SELECT * FROM notes ORDER BY id DESC"
+
+        try:
+            # Used explicit command and quantity is given
+            quantity = int(self.args.quantity)
+        except AttributeError:
+            # Used default command, no quantity given. Assume list most recent 5
+            quantity = 5
+        except ValueError:
+            # Used explicit command, but quantity given as non-integer
+            if self.args.quantity == 'all':
+                quantity = None
+
+        if quantity:
+            query += f" LIMIT {quantity}"
+        cursor.execute(query)
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
             print(note)
@@ -100,9 +110,21 @@ class ScratchPad:
         self.connection.commit()
 
     def delete(self):
+        ids_to_delete = range_parser(self.args.delete)
         cursor = self.connection.cursor()
-        id_to_delete = self.args.delete
-        cursor.execute(f'DELETE FROM notes WHERE id={id_to_delete}')
+        for tagged_id in ids_to_delete:
+            id = tagged_id[0]
+            tag = tagged_id[1]
+            if tag == 'exact':
+                cursor.execute(f'DELETE FROM notes WHERE id={id}')
+            elif tag == 'below':
+                for i in range(0,id+1):
+                    cursor.execute(f'DELETE FROM notes WHERE id={i}')
+            elif tag == 'above':
+                cursor.execute('SELECT max(id) FROM notes')
+                max_id = cursor.fetchone()[0]
+                for i in range(id,max_id+1):
+                    cursor.execute(f'DELETE FROM notes WHERE id={i}')
         self.connection.commit()
 
 
@@ -140,15 +162,64 @@ class Note:
 def parse_args():
     # Read environment from command line args
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--category', default="General", action='store', help="Choose a category under which to put the note")
-    parser.add_argument('-m', '--message', default=False, action='store', help="Enter the contents of the note")
-    parser.add_argument('-l', '--list', default=False, action='store_true', help="List all notes in the database")
-    parser.add_argument('-p', '--preview', default=False, action='store_true', help="List the most recent few notes")
-    parser.add_argument('-d', '--delete', action='store', help="Delete a note with a given ID")
-    parser.add_argument('-x', '--clear', action='store_true', help="Delete a all notes")
-    parser.add_argument('message', metavar='message', nargs='?', type=str, help="Add a note")
+    subparsers = parser.add_subparsers(dest='command', help='Commands')
+
+    # Add command
+    parser_add = subparsers.add_parser('add', help='Add a note to the database')
+    parser_add.add_argument('-c', '--category', default='General', action='store',
+                            help="Choose a category for the note to be added under")
+
+    # List command
+    parser_list = subparsers.add_parser('list', help='List notes in the database')
+    parser_list.add_argument('quantity', nargs='?', default=5, type=str)
+
+    # Delete command
+    # parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
+
+    # Search command
+    # parser_search = subparsers.add_parser('search', help='List notes matching search term')
+
+
+
+
+
+
+    # parser.add_argument('-c', '--category', default="General", action='store', help="Choose a category under which to put the note")
+    # parser.add_argument('-m', '--message', default=False, action='store', help="Enter the contents of the note")
+    # parser.add_argument('-l', '--list', default=False, action='store_true', help="List all notes in the database")
+    # parser.add_argument('-p', '--preview', default=False, action='store_true', help="List the most recent few notes")
+    # parser.add_argument('-d', '--delete', action='store', nargs='+', type=str, help="Delete a note with a given ID")
+    # parser.add_argument('-x', '--clear', action='store_true', help="Delete a all notes")
+    # parser.add_argument('message', metavar='message', nargs='?', type=str, help="Add a note")
     args = parser.parse_args()
+    print(args)
     return args
+
+
+def range_parser(item_list):
+    regex_modifiers = {
+        r"([0-9]+)\-([0-9]+)": "exact",
+        r"([0-9]+)\:": "above",
+        r"\:([0-9]+)": "below"
+    }
+    new_list = []
+    for item in item_list:
+        try:
+            new_list.append((int(item), 'exact'))
+        except ValueError as e:
+            for regex in regex_modifiers.keys():
+                match = re.search(regex, item)
+                if match:
+                    modifier = regex_modifiers[regex]
+                    if modifier == 'exact':
+                        minimum = int(match.group(1))
+                        maximum = int(match.group(2))
+                        for i in range(minimum, maximum+1):
+                            new_list.append((i, modifier))
+                    else:
+                        val = int(match.group(1))
+                        new_list.append((int(val), modifier))
+    return new_list
 
 
 if __name__ == "__main__":
