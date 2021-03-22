@@ -176,16 +176,15 @@ def parse_args():
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')
-    parser_help.add_argument('help', action='store_true', default=None)
+    # parser_help.add_argument('help', nargs='?', action='store', default=False)
 
     # Search command
     # parser_search = subparsers.add_parser('search', help='List notes matching search term')
 
     args = parser.parse_args()
-    if args.help:
+    if args.command == "help":
         parser.print_help()
         exit()
-    print(args)
     return args
 
 
