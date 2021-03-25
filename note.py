@@ -156,6 +156,10 @@ def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command', help='Commands')
 
+    # Test/Dev argument
+    parser.add_argument('-t', '--test', action='store_true',
+                        help='Run the program against a test database for testing features')
+
     # Add command
     parser_add = subparsers.add_parser('add', help='Add a note to the database')
     parser_add.add_argument('content', nargs='*', action='store', type=str, default=None,
@@ -177,6 +181,8 @@ def parse_args():
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')
     # parser_help.add_argument('help', nargs='?', action='store', default=False)
+
+
 
     # Search command
     # parser_search = subparsers.add_parser('search', help='List notes matching search term')
@@ -217,7 +223,10 @@ def range_parser(item_list):
 
 if __name__ == "__main__":
     args = parse_args()
-    db_file = r"C:\sqlite\db\notes.db"
+    if args.test:
+        db_file = r"C:\sqlite\db\notes_test.db"
+    else:
+        db_file = r"C:\sqlite\db\notes.db"
     scratchpad = ScratchPad(db_file, args)
     scratchpad.run()
     # scratchpad.add_note()
