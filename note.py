@@ -76,7 +76,10 @@ class ScratchPad:
 
     def list(self):
         cursor = self.connection.cursor()
-        query = "SELECT * FROM notes ORDER BY id DESC"
+        query = "SELECT * FROM notes"
+        if self.args.category:
+            query += f" WHERE category='{self.args.category}'"
+        query += " ORDER BY id DESC"
 
         try:
             # Used explicit command and quantity is given
@@ -91,6 +94,8 @@ class ScratchPad:
 
         if quantity:
             query += f" LIMIT {quantity}"
+
+        print(query)
         cursor.execute(query)
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
@@ -170,6 +175,9 @@ def parse_args():
     # List command
     parser_list = subparsers.add_parser('list', help='List notes in the database')
     parser_list.add_argument('quantity', nargs='?', action='store', default=5, type=str)
+    parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
+                             help="Choose a category of notes to list")
+
 
     # Delete command
     parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
@@ -217,12 +225,12 @@ def range_parser(item_list):
                     else:
                         val = int(match.group(1))
                         new_list.append((int(val), modifier))
-    print("**** ", new_list)
     return new_list
 
 
 if __name__ == "__main__":
     args = parse_args()
+    print(args)
     if args.test:
         db_file = r"C:\sqlite\db\notes_test.db"
     else:
