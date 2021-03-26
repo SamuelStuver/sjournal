@@ -76,24 +76,14 @@ class ScratchPad:
 
     def list(self):
         cursor = self.connection.cursor()
+
         query = "SELECT * FROM notes"
-        if self.args.category:
+        if hasattr(self.args, 'category') and self.args.category is not None:
             query += f" WHERE category='{self.args.category}'"
         query += " ORDER BY id DESC"
 
-        try:
-            # Used explicit command and quantity is given
-            quantity = int(self.args.quantity)
-        except AttributeError:
-            # Used default command, no quantity given. Assume list most recent 5
-            quantity = 5
-        except ValueError:
-            # Used explicit command, but quantity given as non-integer
-            if self.args.quantity == 'all':
-                quantity = None
-
-        if quantity:
-            query += f" LIMIT {quantity}"
+        if hasattr(self.args, "quantity") and not self.args.all:
+            query += f" LIMIT {self.args.quantity}"
 
         print(query)
         cursor.execute(query)
@@ -174,7 +164,10 @@ def parse_args():
 
     # List command
     parser_list = subparsers.add_parser('list', help='List notes in the database')
-    parser_list.add_argument('quantity', nargs='?', action='store', default=5, type=str)
+    parser_list.add_argument('-a', '--all', action='store_true',
+                             help="List all notes under given criteria")
+    parser_list.add_argument('-q', '--quantity', nargs='?', action='store', default=5, type=int,
+                             help="Specify the amount of results to list")
     parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
                              help="Choose a category of notes to list")
 
