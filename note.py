@@ -85,7 +85,6 @@ class ScratchPad:
         if hasattr(self.args, "quantity") and not self.args.all:
             query += f" LIMIT {self.args.quantity}"
 
-        # print(query)
         cursor.execute(query)
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
@@ -113,6 +112,32 @@ class ScratchPad:
         cursor = self.connection.cursor()
         cursor.execute('DELETE FROM notes')
         self.connection.commit()
+
+    def search(self):
+
+        if hasattr(self.args, 'search_criteria'):
+            regex = f".*{self.args.search_criteria[0]}.*"
+        else:
+            regex = ".*"
+
+        cursor = self.connection.cursor()
+        query = "SELECT * FROM notes"
+        if hasattr(self.args, 'category') and self.args.category is not None:
+            query += f" WHERE category='{self.args.category}'"
+        query += " ORDER BY id DESC"
+
+        if hasattr(self.args, "quantity") and not self.args.all:
+            query += f" LIMIT {self.args.quantity}"
+
+        cursor.execute(query)
+        for item in cursor.fetchall():
+            id = item[0]
+            category = item[2]
+            content = item[3]
+            match = re.search(regex.lower(), content.lower())
+            if match:
+                note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
+                print(note)
 
 
 class Note:
@@ -182,12 +207,13 @@ def parse_args():
     parser_help = subparsers.add_parser('help', help='Display help text')
     # parser_help.add_argument('help', nargs='?', action='store', default=False)
 
-
-
     # Search command
-    # parser_search = subparsers.add_parser('search', help='List notes matching search term')
+    parser_search = subparsers.add_parser('search', help='List notes matching search term')
+    parser_search.add_argument('search_criteria', nargs='*', action='store', type=str)
 
     args = parser.parse_args()
+    if args.test:
+        print(args)
     if args.command == "help":
         parser.print_help()
         exit()
