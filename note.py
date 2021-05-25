@@ -85,7 +85,7 @@ class ScratchPad:
         if hasattr(self.args, "quantity") and not self.args.all:
             query += f" LIMIT {self.args.quantity}"
 
-        print(query)
+        # print(query)
         cursor.execute(query)
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
@@ -171,7 +171,6 @@ def parse_args():
     parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
                              help="Choose a category of notes to list")
 
-
     # Delete command
     parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
     parser_delete.add_argument('delete_criteria', nargs='*', action='store', type=str)
@@ -223,7 +222,7 @@ def range_parser(item_list):
 
 if __name__ == "__main__":
     args = parse_args()
-    print(args)
+    # print(args)
     if args.test:
         db_file = r"C:\sqlite\db\notes_test.db"
     else:
