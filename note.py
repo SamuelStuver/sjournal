@@ -139,6 +139,18 @@ class ScratchPad:
                 note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
                 print(note)
 
+    def fetch(self):
+        notes = []
+        cursor = self.connection.cursor()
+        query = "SELECT * FROM notes ORDER BY id DESC"
+        cursor.execute(query)
+
+        for item in cursor.fetchall():
+            note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
+            notes.append(note)
+
+        return notes
+
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
