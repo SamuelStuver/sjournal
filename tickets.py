@@ -1,6 +1,18 @@
 from note import ScratchPad, Note, parse_args
-from datetime import datetime
+from datetime import datetime, timedelta
+import sys
 import re
+import base64
+from credentials import token
+import requests
+from pprint import pprint
+
+def jira_header(email, token):
+    cred_string = f"{email}:{token}"
+    encodedBytes = base64.b64encode(cred_string.encode("utf-8"))
+    encodedStr = str(encodedBytes, "utf-8")
+    header = {"Authorization": f"Basic {encodedStr}"}
+    return header
 
 
 class Report:
@@ -15,6 +27,9 @@ class Report:
 
         self.tickets = self.filter_tickets()
 
+        for ticket in self.tickets:
+            ticket.get_status()
+
     def filter_tickets(self):
         filtered_list = []
         for ticket in self.tickets:
@@ -23,13 +38,26 @@ class Report:
                 filtered_list.append(ticket)
         return filtered_list
 
+    def compile(self):
+        report_dict = {}
+        for ticket in self.tickets:
+            if ticket.status not in report_dict.keys():
+                report_dict[ticket.status] = [ticket]
+            else:
+                report_dict[ticket.status].append(ticket)
+        return report_dict
+
+    def to_html(self):
+        report_dict = self.compile()
+        # GENERATE HTML FILE FROM REPORT DATA
+
     def show(self):
         print(str(self))
 
     def __str__(self):
-        out = f"Report for {self.from_datetime} - {self.to_datetime}:\n"
+        out = f"\nReport for {self.from_datetime.strftime(self.date_fmt)} => {self.to_datetime.strftime(self.date_fmt)}:\n\n"
         for ticket in self.tickets:
-            out +=  f"{ticket.id}: {ticket.description}\n"
+            out +=  f"{ticket.id} == {ticket.status} == {ticket.description}\n"
         out += "\n"
         return out
 
@@ -68,6 +96,12 @@ class Ticket:
 
         self.base_url = base_url
         self.url = self.base_url + self.id
+        self.status = None
+        self.data = None
+
+    def get_status(self):
+        self.data = get_jira_issue(self.id)
+        self.status = self.data['fields']['status']['name']
 
     def show(self):
         print(str(self))
@@ -81,9 +115,13 @@ class Ticket:
         return out
 
 
-def get_ticket_status(id):
-    pass
-
+def get_jira_issue(key, email="sstuver@forrester.com", token=token):
+    headers = jira_header(email, token)
+    r = requests.get(f'https://forrtrak.atlassian.net/rest/agile/1.0/issue/{key}', headers=headers)
+    assert r.ok
+    issue = r.json()
+    print(f"Found issue: {issue['key']}")
+    return issue
 
 if __name__ == "__main__":
     args = parse_args()
@@ -96,8 +134,11 @@ if __name__ == "__main__":
         if t:
             tickets.append(t)
 
-    report = Report("06-20-21", ticket_list=tickets)
+    yesterday = datetime.today() - timedelta(hours=24)
+    yesterday = yesterday.strftime("%m-%d-%y")
+    report = Report(yesterday, ticket_list=tickets)
     report.show()
 
+    pprint(report.compile())
     # scratchpad.run()
     # scratchpad.add_note()
