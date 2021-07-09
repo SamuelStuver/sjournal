@@ -3,6 +3,8 @@ from datetime import datetime
 import sqlite3
 from sqlite3 import Error
 import re
+import os
+import shutil
 from rich.table import Table
 from rich.console import Console
 
@@ -128,7 +130,7 @@ class ScratchPad:
                     cursor.execute(f'DELETE FROM notes WHERE id={i}')
         self.connection.commit()
 
-    def clear(self):
+    def erase(self):
         cursor = self.connection.cursor()
         cursor.execute('DELETE FROM notes')
         self.connection.commit()
@@ -160,6 +162,7 @@ class ScratchPad:
                 self.insert_into_print_table(note)
                 # print(note)
         self.show_print_table()
+
     def fetch(self):
         notes = []
         cursor = self.connection.cursor()
@@ -171,6 +174,31 @@ class ScratchPad:
             notes.append(note)
 
         return notes
+
+    def backup(self):
+        if count_backups(os.path.dirname(self.db_file)) < 10:
+            if self.args.filename is None:
+                timestamp = datetime.now().strftime("%y_%m_%d_%H_%M_%S")
+                new_filename = r"C:\sqlite\db\notes_" + timestamp + ".db"
+            else:
+                new_filename = os.path.join(os.path.dirname(self.db_file), self.args.filename)
+
+            new_filename = new_filename.replace(".db", "") + ".db"
+            print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
+            shutil.copy(self.db_file, new_filename)
+
+    def restore(self):
+        if self.args.filename is None:
+            filename = get_newest_file(os.path.dirname(self.db_file))
+        else:
+            filename = os.path.join(os.path.dirname(self.db_file), self.args.filename)
+
+        if os.path.exists(filename):
+            print(f"RESTORING BACKUP FROM {filename}. REPLACING {self.db_file}")
+            shutil.copy(filename, self.db_file)
+            self.db_file = filename
+        else:
+            print(f"Failed to restore backup: {filename} cannot be found.")
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
@@ -202,6 +230,19 @@ class Note:
     def __repr__(self):
         return self.__str__()
 
+def count_backups(dir):
+    db_file_list = os.listdir(dir)
+    count = 0
+    for f in db_file_list:
+        if re.search(r"notes_backup_.*", f) is not None:
+            count += 1
+    return count
+
+def get_newest_file(dir):
+    db_file_list = os.listdir(dir)
+    for i, filename in enumerate(db_file_list):
+        db_file_list[i] = os.path.join(dir, filename)
+    return max(db_file_list, key=os.path.getctime)
 
 def parse_args():
     # Read environment from command line args
@@ -234,6 +275,16 @@ def parse_args():
 
     # Erase command
     parser_erase = subparsers.add_parser('erase', help='Delete all notes from the database')
+
+    # Backup command
+    parser_backup = subparsers.add_parser('backup', help='Backup the database. 10 backups are stored at a time')
+    parser_backup.add_argument('-f', '--filename', action='store', default=None,
+                               help='Choose a filename to use for the backup file. By default, the current timestamp will be used')
+
+    # Restore command
+    parser_restore = subparsers.add_parser('restore', help='Restore the database from a file. If --filename is not given, restore the latest backup')
+    parser_restore.add_argument('-f', '--filename', action='store', default=None,
+                               help='Specify a file to backup data from. If not specified, the latest backup file will be used')
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')
