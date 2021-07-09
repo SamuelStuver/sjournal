@@ -114,20 +114,29 @@ class ScratchPad:
 
     def delete(self):
         ids_to_delete = range_parser(self.args.delete_criteria)
+        print(ids_to_delete)
         cursor = self.connection.cursor()
-        for tagged_id in ids_to_delete:
-            id = tagged_id[0]
-            tag = tagged_id[1]
-            if tag == 'exact':
+        for id in ids_to_delete:
+            print(id)
+            if isinstance(id, int):
+                print(f"DELETING NOTE #{id}")
                 cursor.execute(f'DELETE FROM notes WHERE id={id}')
-            elif tag == 'below':
-                for i in range(0,id+1):
-                    cursor.execute(f'DELETE FROM notes WHERE id={i}')
-            elif tag == 'above':
-                cursor.execute('SELECT max(id) FROM notes')
-                max_id = cursor.fetchone()[0]
-                for i in range(id,max_id+1):
-                    cursor.execute(f'DELETE FROM notes WHERE id={i}')
+            else:
+                regex_below = r"\W(\d*)"
+                regex_above = r"(\d*)\W"
+                match_below = re.search(regex_below, id)
+                match_above = re.search(regex_above, id)
+
+                if match_below and match_below.group(1).isnumeric():
+                    for i in range(0, int(match_below.group(1))+1):
+                        print(f"DELETING NOTE #{i}")
+                        cursor.execute(f'DELETE FROM notes WHERE id={i}')
+                elif match_above and match_above.group(1).isnumeric():
+                    cursor.execute('SELECT max(id) FROM notes')
+                    max_id = cursor.fetchone()[0]
+                    for i in range(int(match_above.group(1)), max_id+1):
+                        print(f"DELETING NOTE #{i}")
+                        cursor.execute(f'DELETE FROM notes WHERE id={i}')
         self.connection.commit()
 
     def erase(self):
@@ -304,28 +313,20 @@ def parse_args():
 
 
 def range_parser(item_list):
-    regex_modifiers = {
-        r"([0-9]+)\-([0-9]+)": "exact",
-        r"([0-9]+)\:": "above",
-        r"\:([0-9]+)": "below"
-    }
+    regex = r"(\d*)\W(\d*)"
     new_list = []
     for item in item_list:
-        try:
-            new_list.append((int(item), 'exact'))
-        except ValueError as e:
-            for regex in regex_modifiers.keys():
-                match = re.search(regex, item)
-                if match:
-                    modifier = regex_modifiers[regex]
-                    if modifier == 'exact':
-                        minimum = int(match.group(1))
-                        maximum = int(match.group(2))
-                        for i in range(minimum, maximum+1):
-                            new_list.append((i, modifier))
-                    else:
-                        val = int(match.group(1))
-                        new_list.append((int(val), modifier))
+        if item.isnumeric():
+            new_list.append(int(item))
+        else:
+            match = re.search(regex, item)
+            if match:
+                minimum, maximum = match.groups()
+                if minimum.isnumeric() and maximum.isnumeric():
+                    for i in range(int(minimum), int(maximum) + 1):
+                        new_list.append(int(i))
+                else:
+                    new_list.append(item)
     return new_list
 
 
