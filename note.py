@@ -3,6 +3,8 @@ from datetime import datetime
 import sqlite3
 from sqlite3 import Error
 import re
+from rich.table import Table
+from rich.console import Console
 
 
 class ScratchPad:
@@ -10,6 +12,16 @@ class ScratchPad:
         self.db_file = db_file
         self.args = args
         self.create_connection()
+        self.console = Console()
+        self.table = Table(title="Notes")
+        self.setup_table()
+
+    def setup_table(self):
+        self.table.add_column("ID", style="cyan")
+        self.table.add_column("Timestamp")
+        self.table.add_column("Category", style="bold green")
+        self.table.add_column("Content", style="white")
+
 
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
@@ -57,7 +69,7 @@ class ScratchPad:
         cursor.execute(query)
         self.connection.commit()
 
-    def insert_into_table(self, table_name, note):
+    def insert_into_database_table(self, table_name, note):
         cursor = self.connection.cursor()
         cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)", note.dict)
         self.connection.commit()
@@ -71,8 +83,14 @@ class ScratchPad:
         except TypeError:
             most_recent_id = 0
         note = Note(most_recent_id+1, note_data["category"], note_data["content"])
-        self.insert_into_table("notes", note)
+        self.insert_into_database_table("notes", note)
         self.connection.commit()
+
+    def insert_into_print_table(self, note):
+        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), str(note.content))
+
+    def show_print_table(self):
+        self.console.print(self.table)
 
     def list(self):
         cursor = self.connection.cursor()
@@ -88,7 +106,9 @@ class ScratchPad:
         cursor.execute(query)
         for item in cursor.fetchall():
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
-            print(note)
+            self.insert_into_print_table(note)
+            # print(note)
+        self.show_print_table()
 
     def delete(self):
         ids_to_delete = range_parser(self.args.delete_criteria)
@@ -137,8 +157,9 @@ class ScratchPad:
             match = re.search(regex.lower(), content.lower())
             if match:
                 note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
-                print(note)
-
+                self.insert_into_print_table(note)
+                # print(note)
+        self.show_print_table()
     def fetch(self):
         notes = []
         cursor = self.connection.cursor()
@@ -150,7 +171,6 @@ class ScratchPad:
             notes.append(note)
 
         return notes
-
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
