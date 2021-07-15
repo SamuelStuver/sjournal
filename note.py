@@ -106,7 +106,10 @@ class ScratchPad:
             query += f" LIMIT {self.args.quantity}"
 
         cursor.execute(query)
-        for item in cursor.fetchall():
+        items_to_show = cursor.fetchall()
+        if hasattr(self.args, "reverse") and self.args.reverse:
+            items_to_show = items_to_show[::-1]
+        for item in items_to_show:
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
             self.insert_into_print_table(note)
             # print(note)
@@ -277,6 +280,8 @@ def parse_args():
                              help="Specify the amount of results to list")
     parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
                              help="Choose a category of notes to list")
+    parser_list.add_argument('-r', '--reverse', action='store_true',
+                             help="Display notes in reverse chronological order")
 
     # Delete command
     parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
