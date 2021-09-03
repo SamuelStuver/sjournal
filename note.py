@@ -105,14 +105,15 @@ class ScratchPad:
 
 
 
-        cursor.execute(f"SELECT category, content FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
-        old_category, old_content = cursor.fetchone()
+        cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
+        old_category, old_content, old_timestamp = cursor.fetchone()
 
         print(f'Editing Note #{id_to_edit}: "{old_content}"')
 
         new_content = input("Enter new note text: ")
 
         new_note = Note(id_to_edit, old_category, new_content)
+        new_note.timestamp = old_timestamp
         cursor.execute(f'DELETE FROM notes WHERE id={id_to_edit}')
         self.insert_into_database_table("notes", new_note)
         self.connection.commit()
@@ -126,7 +127,12 @@ class ScratchPad:
         query += " ORDER BY id DESC"
 
         if hasattr(self.args, "quantity") and not self.args.all:
-            query += f" LIMIT {self.args.quantity}"
+            try:
+                query += f" LIMIT {self.args.quantity[0]}"
+            except TypeError:
+                query += f" LIMIT {self.args.quantity}"
+        elif not hasattr(self.args, "all"):
+            query += f" LIMIT 5"
 
         cursor.execute(query)
         items_to_show = cursor.fetchall()
@@ -303,10 +309,12 @@ def parse_args():
 
     # List command
     parser_list = subparsers.add_parser('list', help='List notes in the database')
+    parser_list.add_argument('quantity', nargs='*', action='store', default=5, type=int,
+                             help="Specify the amount of results to list")
+
     parser_list.add_argument('-a', '--all', action='store_true',
                              help="List all notes under given criteria")
-    parser_list.add_argument('-q', '--quantity', nargs='?', action='store', default=5, type=int,
-                             help="Specify the amount of results to list")
+
     parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
                              help="Choose a category of notes to list")
     parser_list.add_argument('-r', '--reverse', action='store_true',
