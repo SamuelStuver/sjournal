@@ -78,7 +78,11 @@ class ScratchPad:
         self.connection.commit()
 
     def add(self):
-        note_data = {"category": self.args.category, "content": ' '.join(self.args.content)}
+        note_content = ' '.join(self.args.content)
+        if self.args.style:
+            note_content = f"[{self.args.style}]{note_content}[/]"
+
+        note_data = {"category": self.args.category, "content": note_content}
         cursor = self.connection.cursor()
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
         try:
@@ -301,6 +305,8 @@ def parse_args():
                             help="Content of note")
     parser_add.add_argument('-c', '--category', default='General', action='store',
                             help="Choose a category for the note to be added under")
+    parser_add.add_argument('-s', '--style', default=None, action='store',
+                            help="Specify a rich console markup style to the note for display")
 
     # Edit command
     parser_edit = subparsers.add_parser('edit', help='Edit a note to the database')
