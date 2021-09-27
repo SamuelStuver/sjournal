@@ -8,6 +8,7 @@ import os
 import shutil
 from rich.table import Table
 from rich.console import Console
+import subprocess
 
 
 class ScratchPad:
@@ -107,12 +108,11 @@ class ScratchPad:
             cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
             id_to_edit = cursor.fetchone()[0]
 
-
-
         cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
         old_category, old_content, old_timestamp = cursor.fetchone()
 
-        print(f'Editing Note #{id_to_edit}: "{old_content}"')
+        copy_to_clipboard(old_content)
+        print(f'Editing Note #{id_to_edit} (copied to clipboard): "{old_content}"')
 
         new_content = input("Enter new note text: ")
 
@@ -393,6 +393,11 @@ def range_parser(item_list):
                 else:
                     new_list.append(item)
     return new_list
+
+
+def copy_to_clipboard(txt):
+    cmd = f'echo {txt.strip()} |clip'
+    return subprocess.check_call(cmd, shell=True)
 
 
 if __name__ == "__main__":
