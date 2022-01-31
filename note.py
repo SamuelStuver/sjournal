@@ -9,6 +9,7 @@ import shutil
 from rich.table import Table
 from rich.console import Console
 import subprocess
+import PySimpleGUI as sg
 
 
 class ScratchPad:
@@ -78,7 +79,53 @@ class ScratchPad:
         cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)", note.dict)
         self.connection.commit()
 
+    def add_gui(self):
+        sg.theme('DarkGrey')
+
+        layout = [
+            [sg.Text(f"Add note to table \"{self.table.title}\" at {self.db_file}")],
+            [
+              sg.Text('{:10}'.format('Category:')),
+              sg.InputText(key="category",
+                           default_text="General",
+                           size=(25, 1))
+            ],
+            [
+              sg.Text('{:10}'.format('Style:')), sg.InputText(key="style", size=(25, 1))
+            ],
+            [
+              sg.Text('{:10}'.format('Content:')), sg.InputText(key="content", size=(50, 1))
+            ],
+            [
+              sg.Button('Save Note'), sg.Button('Cancel')
+            ]
+        ]
+
+        window = sg.Window('Window Title', layout, font='Courier')
+
+        while True:
+            event, values = window.read()
+            if event == sg.WIN_CLOSED or event == 'Cancel':
+                break
+            elif event == "Save Note":
+                break
+        window.close()
+
+        if event == "Save Note":
+            return values
+        else:
+            return None
+
     def add(self):
+
+        if len(self.args.content) == 0:
+            values = self.add_gui()
+            if values:
+                self.args.style = values['style']
+                self.args.category = values['category']
+                self.args.content = [values['content']]
+            else:
+                exit()
         note_content = ' '.join(self.args.content)
         if self.args.style:
             note_content = f"[{self.args.style}]{note_content}[/]"
