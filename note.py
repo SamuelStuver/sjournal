@@ -1,16 +1,14 @@
-import argparse
 import json
 import re
 import os
 import shutil
-from pathlib import Path
 import PySimpleGUI as sg
 from datetime import datetime
 import sqlite3
 from sqlite3 import Error
 from rich.table import Table
 from rich.console import Console
-from utils import count_backups, get_newest_file, range_parser, copy_to_clipboard
+from utils import get_newest_file, range_parser, copy_to_clipboard
 from arguments import parse_args
 
 

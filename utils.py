@@ -2,13 +2,13 @@ import os
 import re
 import subprocess
 
-def count_backups(dir):
-    db_file_list = os.listdir(dir)
-    count = 0
-    for f in db_file_list:
-        if re.search(r"notes_backup_.*", f) is not None:
-            count += 1
-    return count
+# def count_backups(dir):
+#     db_file_list = os.listdir(dir)
+#     count = 0
+#     for f in db_file_list:
+#         if re.search(r"notes_backup_.*", f) is not None:
+#             count += 1
+#     return count
 
 
 def get_newest_file(dir):
