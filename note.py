@@ -17,6 +17,7 @@ from arguments import parse_args
 class SJournal:
     def __init__(self, args):
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_file = os.path.join(self.root_dir, "config.json")
         self.db_file = ""
         self.journal_dir = ""
         self.journal_name = ""
@@ -310,18 +311,18 @@ class SJournal:
 
         if hasattr(self.args, 'journal_name'):
             # configure the json file to use the new name
-            with open("config.json", "r") as config_file:
+            with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
 
             config["journal_name"] = self.args.journal_name
             confstring = json.dumps(config)
-            with open("config.json", "w") as config_file:
+            with open(self.config_file, "w") as config_file:
                 config_file.write(confstring)
             msg = "Set journal to"
 
         else:
             # Use the file specified in the config file
-            with open("config.json", "r") as config_file:
+            with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
             msg = "Using journal at"
 
