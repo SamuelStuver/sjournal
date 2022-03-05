@@ -3,6 +3,7 @@ import json
 import re
 import os
 import shutil
+from pathlib import Path
 import PySimpleGUI as sg
 from datetime import datetime
 import sqlite3
@@ -15,6 +16,7 @@ from arguments import parse_args
 
 class SJournal:
     def __init__(self, args):
+        self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.db_file = ""
         self.journal_dir = ""
         self.journal_name = ""
@@ -23,7 +25,7 @@ class SJournal:
 
         self.create_connection()
         self.console = Console()
-        self.table = Table(title="Notes")
+        self.table = Table(title=self.journal_name)
         self.setup_table()
 
     def setup_table(self):
@@ -273,7 +275,7 @@ class SJournal:
         return notes
 
     def backup(self):
-        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
+        backup_dir = os.path.join(self.root_dir, self.journal_dir, "backups", self.journal_name)
 
         if not os.path.exists(backup_dir):
             os.makedirs(backup_dir)
@@ -289,7 +291,7 @@ class SJournal:
         shutil.copy(self.db_file, new_filename)
 
     def restore(self):
-        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
+        backup_dir = os.path.join(self.root_dir, self.journal_dir, "backups", self.journal_name)
 
         if self.args.filename is None:
             filename = get_newest_file(backup_dir)
@@ -305,6 +307,7 @@ class SJournal:
             print(f"Failed to restore backup: file not found.")
 
     def load(self):
+
         if hasattr(self.args, 'journal_name'):
             # configure the json file to use the new name
             with open("config.json", "r") as config_file:
@@ -322,7 +325,7 @@ class SJournal:
                 config = json.load(config_file)
             msg = "Using journal at"
 
-        self.db_file = os.path.join(config["journal_dir"], f"{config['journal_name']}.db")
+        self.db_file = os.path.join(self.root_dir, config["journal_dir"], f"{config['journal_name']}.db")
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
         if not os.path.exists(self.journal_dir):
