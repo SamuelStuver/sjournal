@@ -1,21 +1,26 @@
 import argparse
-import sys
-from datetime import datetime
-import sqlite3
-from sqlite3 import Error
+import json
 import re
 import os
 import shutil
+import PySimpleGUI as sg
+from datetime import datetime
+import sqlite3
+from sqlite3 import Error
 from rich.table import Table
 from rich.console import Console
-import subprocess
-import PySimpleGUI as sg
+from utils import count_backups, get_newest_file, range_parser, copy_to_clipboard
+from arguments import parse_args
 
 
-class ScratchPad:
-    def __init__(self, db_file, args):
-        self.db_file = db_file
+class SJournal:
+    def __init__(self, args):
+        self.db_file = ""
+        self.journal_dir = ""
+        self.journal_name = ""
         self.args = args
+        self.load()
+
         self.create_connection()
         self.console = Console()
         self.table = Table(title="Notes")
@@ -27,11 +32,11 @@ class ScratchPad:
         self.table.add_column("Category", style="bold green")
         self.table.add_column("Content", style="white")
 
-
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
         if self.args.command:
-            return getattr(self, self.args.command)
+            if self.args.command != "load":
+                return getattr(self, self.args.command)
         else:
             return self.list
 
@@ -268,29 +273,62 @@ class ScratchPad:
         return notes
 
     def backup(self):
-        if count_backups(os.path.dirname(self.db_file)) < 10:
-            if self.args.filename is None:
-                timestamp = datetime.now().strftime("%y_%m_%d_%H_%M_%S")
-                new_filename = r"C:\sqlite\db\notes_" + timestamp + ".db"
-            else:
-                new_filename = os.path.join(os.path.dirname(self.db_file), self.args.filename)
+        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
 
-            new_filename = new_filename.replace(".db", "") + ".db"
-            print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
-            shutil.copy(self.db_file, new_filename)
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+
+        if self.args.filename is None:
+            timestamp = datetime.now().strftime("%y_%m_%d_%H_%M_%S")
+            new_filename = os.path.join(backup_dir, f"backup_{self.journal_name}_{timestamp}.db")
+        else:
+            new_filename = os.path.join(backup_dir, self.args.filename)
+
+        new_filename = new_filename.replace(".db", "") + ".db"
+        print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
+        shutil.copy(self.db_file, new_filename)
 
     def restore(self):
-        if self.args.filename is None:
-            filename = get_newest_file(os.path.dirname(self.db_file))
-        else:
-            filename = os.path.join(os.path.dirname(self.db_file), self.args.filename)
+        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
 
-        if os.path.exists(filename):
+        if self.args.filename is None:
+            filename = get_newest_file(backup_dir)
+        else:
+            filename = os.path.join(backup_dir, self.args.filename)
+
+        if filename and os.path.exists(filename.replace(".db", "") + ".db"):
+            filename = filename.replace(".db", "") + ".db"
             print(f"RESTORING BACKUP FROM {filename}. REPLACING {self.db_file}")
             shutil.copy(filename, self.db_file)
-            self.db_file = filename
+            # self.db_file = filename
         else:
-            print(f"Failed to restore backup: {filename} cannot be found.")
+            print(f"Failed to restore backup: file not found.")
+
+    def load(self):
+        if hasattr(self.args, 'journal_name'):
+            # configure the json file to use the new name
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+
+            config["journal_name"] = self.args.journal_name
+            confstring = json.dumps(config)
+            with open("config.json", "w") as config_file:
+                config_file.write(confstring)
+            msg = "Set journal to"
+
+        else:
+            # Use the file specified in the config file
+            with open("config.json", "r") as config_file:
+                config = json.load(config_file)
+            msg = "Using journal at"
+
+        self.db_file = os.path.join(config["journal_dir"], f"{config['journal_name']}.db")
+        self.journal_dir = config["journal_dir"]
+        self.journal_name = config["journal_name"]
+        if not os.path.exists(self.journal_dir):
+            os.makedirs(self.journal_dir)
+        print(f"{msg} {self.db_file}")
+
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
@@ -322,138 +360,9 @@ class Note:
     def __repr__(self):
         return self.__str__()
 
-def count_backups(dir):
-    db_file_list = os.listdir(dir)
-    count = 0
-    for f in db_file_list:
-        if re.search(r"notes_backup_.*", f) is not None:
-            count += 1
-    return count
-
-def get_newest_file(dir):
-    db_file_list = os.listdir(dir)
-    for i, filename in enumerate(db_file_list):
-        db_file_list[i] = os.path.join(dir, filename)
-    return max(db_file_list, key=os.path.getctime)
-
-def parse_args():
-
-    # Read environment from command line args
-    parser = argparse.ArgumentParser()
-    subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
-
-    # Test/Dev argument
-    parser.add_argument('-t', '--test', action='store_true',
-                        help='Run the program against a test database for testing features')
-
-    # Add command
-    parser_add = subparsers.add_parser('add', help='Add a note to the database')
-    parser_add.add_argument('content', nargs='*', action='store', type=str, default=None,
-                            help="Content of note")
-    parser_add.add_argument('-c', '--category', default='General', action='store',
-                            help="Choose a category for the note to be added under")
-    parser_add.add_argument('-s', '--style', default=None, action='store',
-                            help="Specify a rich console markup style to the note for display")
-
-    # Edit command
-    parser_edit = subparsers.add_parser('edit', help='Edit a note to the database')
-    parser_edit.add_argument('id', nargs='?', action='store', type=int, default=None,
-                             help="ID of note to edit")
-
-    # List command
-    parser_list = subparsers.add_parser('list', help='List notes in the database')
-    parser_list.add_argument('quantity', nargs='*', action='store', default=5, type=int,
-                             help="Specify the amount of results to list")
-
-    parser_list.add_argument('-a', '--all', action='store_true',
-                             help="List all notes under given criteria")
-
-    parser_list.add_argument('-c', '--category', nargs='?', default=None, action='store',
-                             help="Choose a category of notes to list")
-    parser_list.add_argument('-r', '--reverse', action='store_true',
-                             help="Display notes in reverse chronological order")
-
-    # Delete command
-    parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
-    parser_delete.add_argument('delete_criteria', nargs='*', action='store', type=str)
-
-    # Erase command
-    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the database')
-
-    # Backup command
-    parser_backup = subparsers.add_parser('backup', help='Backup the database. 10 backups are stored at a time')
-    parser_backup.add_argument('-f', '--filename', action='store', default=None,
-                               help='Choose a filename to use for the backup file. By default, the current timestamp will be used')
-
-    # Restore command
-    parser_restore = subparsers.add_parser('restore', help='Restore the database from a file. If --filename is not given, restore the latest backup')
-    parser_restore.add_argument('-f', '--filename', action='store', default=None,
-                               help='Specify a file to backup data from. If not specified, the latest backup file will be used')
-
-    # Help command
-    parser_help = subparsers.add_parser('help', help='Display help text')
-    parser_help.add_argument('help_command', nargs='?', action='store', default=None)
-
-    # Search command
-    parser_search = subparsers.add_parser('search', help='List notes matching search term')
-    parser_search.add_argument('search_criteria', nargs='*', action='store', type=str)
-
-    args = parser.parse_args()
-    parsers = {
-        'add':parser_add,
-        'edit':parser_edit,
-        'list':parser_list,
-        'delete':parser_delete,
-        'erase':parser_erase,
-        'backup':parser_backup,
-        'restore':parser_restore,
-        'search':parser_search,
-        'help':parser_help
-    }
-
-    if args.test:
-        print(args)
-
-    if args.command == "help":
-        if not args.help_command or args.help_command not in parsers.keys():
-            parser.print_help()
-        else:
-            parsers[args.help_command].print_help()
-        exit()
-
-    return args
-
-
-def range_parser(item_list):
-    regex = r"(\d*)\W(\d*)"
-    new_list = []
-    for item in item_list:
-        if item.isnumeric():
-            new_list.append(int(item))
-        else:
-            match = re.search(regex, item)
-            if match:
-                minimum, maximum = match.groups()
-                if minimum.isnumeric() and maximum.isnumeric():
-                    for i in range(int(minimum), int(maximum) + 1):
-                        new_list.append(int(i))
-                else:
-                    new_list.append(item)
-    return new_list
-
-
-def copy_to_clipboard(txt):
-    cmd = f'echo {txt.strip()} |clip'
-    return subprocess.check_call(cmd, shell=True)
-
 
 if __name__ == "__main__":
     args = parse_args()
-    # print(args)
-    if args.test:
-        db_file = r"C:\sqlite\db\notes_test.db"
-    else:
-        db_file = r"C:\sqlite\db\notes.db"
-    scratchpad = ScratchPad(db_file, args)
+    print(args)
+    scratchpad = SJournal(args)
     scratchpad.run()
-    # scratchpad.add_note()
