@@ -7,10 +7,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
 
-    # Test/Dev argument
-    parser.add_argument('-t', '--test', action='store_true',
-                        help='Run the program against a test database for testing features')
-
     # Add command
     parser_add = subparsers.add_parser('add', help='Add a note to the database')
     parser_add.add_argument('content', nargs='*', action='store', type=str, default=None,
@@ -85,9 +81,6 @@ def parse_args():
         'categories': parser_categories,
         'help':parser_help
     }
-
-    if args.test:
-        print(args)
 
     if args.command == "help":
         if not args.help_command or args.help_command not in parsers.keys():
