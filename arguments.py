@@ -61,11 +61,15 @@ def parse_args():
 
     # Search command
     parser_search = subparsers.add_parser('search', help='List notes matching search term')
-    parser_search.add_argument('search_criteria', nargs='*', action='store', type=str)
+    parser_search.add_argument('search_criteria', nargs='+', action='store', type=str)
 
     # Load command
     parser_load = subparsers.add_parser('load', help="Load a journal or create a new one if it doesn't exist")
     parser_load.add_argument('journal_name', action='store', type=str)
+
+    # Categories command
+    parser_categories = subparsers.add_parser('categories', help="List all categories in the current journal")
+    parser_categories.add_argument('search_criteria', nargs="?", action='store', type=str)
 
     args = parser.parse_args()
     parsers = {
@@ -78,6 +82,7 @@ def parse_args():
         'restore':parser_restore,
         'search':parser_search,
         'load':parser_load,
+        'categories': parser_categories,
         'help':parser_help
     }
 
