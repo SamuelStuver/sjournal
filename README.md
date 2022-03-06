@@ -1,5 +1,7 @@
 # sjournal
-A simple and lightweight notepad for the command line.
+A simple and light-weight notepad for the command line:
+
+![Demo](/demo.png)
 
 ## Installation
 ### via pip
