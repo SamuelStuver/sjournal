@@ -198,6 +198,25 @@ class SJournal:
             # print(note)
         self.show_print_table()
 
+    def categories(self):
+        print(self.args)
+        if hasattr(self.args, 'search_criteria') and self.args.search_criteria:
+            regex = f"{self.args.search_criteria}"
+        else:
+            regex = ".*"
+
+        cursor = self.connection.cursor()
+        query = f"Select distinct category from notes ORDER BY category ASC"
+
+        if hasattr(self.args, "quantity") and not self.args.all:
+            query += f" LIMIT {self.args.quantity}"
+
+        cursor.execute(query)
+        for item in cursor.fetchall():
+            match = re.search(regex.lower(), item[0].lower())
+            if match:
+                print(item[0])
+
     def delete(self):
         ids_to_delete = range_parser(self.args.delete_criteria)
         print(ids_to_delete)
@@ -232,7 +251,7 @@ class SJournal:
 
     def search(self):
         if hasattr(self.args, 'search_criteria'):
-            regex = f".*{self.args.search_criteria[0]}.*"
+            regex = f"{self.args.search_criteria[0]}"
         else:
             regex = ".*"
 
