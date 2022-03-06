@@ -40,5 +40,6 @@ def range_parser(item_list):
 
 
 def copy_to_clipboard(txt):
-    cmd = f'printf "{txt.strip()}" | clip'
+    # cmd = f'printf "{txt.strip()}" | clip'
+    cmd = f'echo | set /p dummynote={txt.strip()} | clip'
     return subprocess.check_call(cmd, shell=True)
