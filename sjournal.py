@@ -35,6 +35,7 @@ class SJournal:
 
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
+        # If command is "load", it is already run at startup, so don't run it again
         if self.args.command:
             if self.args.command != "load":
                 return getattr(self, self.args.command)
@@ -53,17 +54,13 @@ class SJournal:
         self.connection.close()
 
     def run(self):
-        self.setup()
+        if not self.table_exists("notes"):
+            self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
+
         action = self.handle_args()
         if action:
             action()
         self.close_connection()
-
-    def setup(self):
-        if not self.table_exists("notes"):
-            self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
-
-        return self
 
     def table_exists(self, table_name):
         cursor = self.connection.cursor()
@@ -234,7 +231,6 @@ class SJournal:
         self.connection.commit()
 
     def search(self):
-
         if hasattr(self.args, 'search_criteria'):
             regex = f".*{self.args.search_criteria[0]}.*"
         else:
@@ -316,20 +312,20 @@ class SJournal:
             confstring = json.dumps(config)
             with open(self.config_file, "w") as config_file:
                 config_file.write(confstring)
-            msg = "Set journal to"
+
+            msg = f'Set journal to {os.path.join(self.root_dir, config["journal_dir"], config["journal_name"])}.db'
+            print(msg)
 
         else:
             # Use the file specified in the config file
             with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
-            msg = "Using journal at"
 
         self.db_file = os.path.join(self.root_dir, config["journal_dir"], f"{config['journal_name']}.db")
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
         if not os.path.exists(self.journal_dir):
             os.makedirs(self.journal_dir)
-        print(f"{msg} {self.db_file}")
 
 
 class Note:
@@ -365,6 +361,5 @@ class Note:
 
 if __name__ == "__main__":
     args = parse_args()
-    print(args)
-    scratchpad = SJournal(args)
-    scratchpad.run()
+    journal = SJournal(args)
+    journal.run()
