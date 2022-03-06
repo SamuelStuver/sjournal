@@ -145,7 +145,7 @@ class SJournal:
         self.connection.commit()
 
     def insert_into_print_table(self, note):
-        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), str(note.content))
+        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), note.content)
 
     def show_print_table(self):
         self.console.print(self.table)
@@ -321,6 +321,15 @@ class SJournal:
             print(f"Failed to restore backup: file not found.")
 
     def load(self):
+        if not os.path.isfile(os.path.join(self.root_dir, "config.json")):
+            print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'config.json')}")
+            config = {
+                "journal_dir": "journals",
+                "journal_name": "notes"
+            }
+            confstring = json.dumps(config)
+            with open(self.config_file, "w") as config_file:
+                config_file.write(confstring)
 
         if hasattr(self.args, 'journal_name'):
             # configure the json file to use the new name
@@ -340,11 +349,12 @@ class SJournal:
             with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
 
+        if not os.path.exists(os.path.join(self.root_dir, config["journal_dir"])):
+            os.makedirs(os.path.join(self.root_dir, config["journal_dir"]))
         self.db_file = os.path.join(self.root_dir, config["journal_dir"], f"{config['journal_name']}.db")
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
-        if not os.path.exists(self.journal_dir):
-            os.makedirs(self.journal_dir)
+
 
 
 class Note:
