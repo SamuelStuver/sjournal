@@ -1,5 +1,5 @@
 # sjournal
-A simple and lightweight note-taking application for the command line.
+A simple and lightweight notepad for the command line.
 
 ## Installation
 ### via pip
