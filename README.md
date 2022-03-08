@@ -1,4 +1,4 @@
-# sjournal
+# sjournal ![version](/version.svg)
 A simple and light-weight notepad for the command line:
 
 ![Demo](/demo.png)
