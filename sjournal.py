@@ -14,6 +14,7 @@ from arguments import parse_args
 
 class SJournal:
     def __init__(self, args):
+        print(args)
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file = os.path.join(self.root_dir, "config.json")
         self.db_file = ""

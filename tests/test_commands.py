@@ -36,6 +36,18 @@ def clean_journal_fixture():
     delete_file(backup_config_file)
 
 
+@pytest.fixture(scope="function")
+def journal_with_notes_fixture(clean_journal_fixture):
+    journal = clean_journal_fixture
+
+    for i in range(3):
+        journal.create_connection()
+        journal.args = argparse.Namespace(command="add", category="General", content=[f"Note {i+1}"], style="")
+        journal.run()
+
+    yield journal
+
+
 def test_load(clean_journal_fixture):
     journal = clean_journal_fixture
     logger.info("Clean journal should have the correct name")
@@ -94,36 +106,54 @@ def test_add_note(clean_journal_fixture, commandline, expected):
 
 
 def test_edit_note():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
-def test_delete_note():
-    pytest.xfail("TODO")
+def test_delete_note(journal_with_notes_fixture):
+    journal = journal_with_notes_fixture
+
+    logger.info("Journal should have 3 notes")
+    notes = journal._get_notes()
+    assert len(notes) == 3
+
+    for note_id in [3, 2, 1]:
+        logger.info(f"Delete note #{note_id}")
+        commandline = f'python {sjournal_py} delete {note_id}'
+        result = subprocess.run(commandline, capture_output=True)
+        logger.debug(f"stdout: {result.stdout}")
+        assert result.returncode == 0
+
+        notes = journal._get_notes()
+        logger.debug(notes)
+        assert len(notes) == note_id - 1
+        if len(notes) > 0:
+            expected = {"category": "General", "content": f"Note {note_id - 1}", "id": note_id - 1}
+            validate_note(notes[-1], expected)
 
 
 def test_list():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_categories():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_backup():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_restore():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_erase():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_search():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")
 
 
 def test_help():
-    pytest.xfail("TODO")
+    pytest.skip("TODO")

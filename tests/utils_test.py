@@ -33,6 +33,8 @@ def delete_file(file_path):
 
 def validate_note(note, expected):
     logger.info("Verify that the note has the correct data")
+    logger.debug(f"note: {note}")
+    logger.debug(f"expected: {expected}")
     for param in expected.keys():
         assert getattr(note, param) == expected[param]
 
