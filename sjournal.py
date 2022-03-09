@@ -356,7 +356,6 @@ class SJournal:
         self.journal_name = config["journal_name"]
 
 
-
 class Note:
     def __init__(self, id, category, content, date_time=None):
         self.id = id

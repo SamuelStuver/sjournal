@@ -56,7 +56,7 @@ def parse_args():
 
     # Load command
     parser_load = subparsers.add_parser('load', help="Load a journal or create a new one if it doesn't exist")
-    parser_load.add_argument('journal_name', action='store', type=str)
+    parser_load.add_argument('journal_name', action='store', type=str, help="Name of the journal to load or create")
 
     # Restore command
     parser_restore = subparsers.add_parser('restore', help='Restore the database from a file. If --filename is not given, restore the latest backup')
