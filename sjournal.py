@@ -355,6 +355,19 @@ class SJournal:
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
 
+    def _get_notes(self):
+        self.create_connection()
+        query = "SELECT * FROM notes"
+        cursor = self.connection.cursor()
+        cursor.execute(query)
+        items = cursor.fetchall()
+        notes = []
+        for item in items:
+            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S")))
+        self.close_connection()
+
+        return notes
+
 
 class Note:
     def __init__(self, id, category, content, date_time=None):
