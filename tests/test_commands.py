@@ -1,4 +1,5 @@
 import pytest
+import logging
 import subprocess
 from sjournal import SJournal, Note
 from utils_test import backup_file, delete_file, get_project_root
@@ -10,7 +11,7 @@ import os
 
 @pytest.fixture(scope="function")
 def clean_journal_fixture():
-
+    logging.info("START OF TEST")
     # backup current config file
     ROOT_DIR = get_project_root()
     config_file = os.path.join(ROOT_DIR, "config.json")
