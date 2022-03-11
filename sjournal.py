@@ -14,6 +14,7 @@ from arguments import parse_args
 
 class SJournal:
     def __init__(self, args):
+        print(args)
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file = os.path.join(self.root_dir, "config.json")
         self.db_file = ""
@@ -355,6 +356,18 @@ class SJournal:
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
 
+    def _get_notes(self):
+        self.create_connection()
+        query = "SELECT * FROM notes"
+        cursor = self.connection.cursor()
+        cursor.execute(query)
+        items = cursor.fetchall()
+        notes = []
+        for item in items:
+            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S")))
+        self.close_connection()
+
+        return notes
 
 
 class Note:
