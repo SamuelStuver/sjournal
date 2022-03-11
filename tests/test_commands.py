@@ -20,6 +20,10 @@ def clean_journal_fixture():
     config_file = os.path.join(ROOT_DIR, "config.json")
     backup_config_file = backup_file(config_file)
 
+    # if "automated_test.db" exists, delete it
+    journal_file = os.path.join(ROOT_DIR, "journals", "automated_test.db")
+    delete_file(journal_file)
+
     # create new test notebook
     args = argparse.Namespace(command="load", journal_name="automated_test")
     journal = SJournal(args)
@@ -42,31 +46,36 @@ def journal_with_notes_fixture(clean_journal_fixture):
 
     for i in range(3):
         journal.create_connection()
-        journal.args = argparse.Namespace(command="add", category="General", content=[f"Note {i+1}"], style="")
+        journal.args = argparse.Namespace(command="add", category="General", content=[f"Note {i}"], style="")
         journal.run()
 
     yield journal
 
 
 def test_load(clean_journal_fixture):
+    # Start with clean empty journal
     journal = clean_journal_fixture
     logger.info("Clean journal should have the correct name")
     assert journal.journal_name == "automated_test"
 
+    # Clean journal should be empty
     logger.info("Clean journal should have 0 notes")
-    notes = journal._get_notes()
-    assert len(notes) == 0
+    assert journal.length == 0
 
+    # Verify that the correct config info is used with starting journal
     validate_config({"journal_dir": "journals", "journal_name": "automated_test"})
 
+    # Load a new journal
     logger.info("Load a new journal named 'delete_this_journal'")
     commandline = f'python {sjournal_py} load delete_this_journal'
     result = subprocess.run(commandline, capture_output=True)
     logger.debug(f"stdout: {result.stdout}")
     assert result.returncode == 0
 
+    # Verify that the correct config info is used with new journal
     validate_config({"journal_dir": "journals", "journal_name": "delete_this_journal"})
 
+    # Delete the new journal
     logger.info("Delete the new journal file")
     new_journal_file = os.path.join(ROOT_DIR, "journals", "delete_this_journal.db")
     delete_file(new_journal_file)
@@ -74,61 +83,96 @@ def test_load(clean_journal_fixture):
 
 @pytest.mark.parametrize('commandline, expected', [
         (f'python {sjournal_py} add ""',
-         {"category":"General", "content":"", "id":1}),
+         {"category":"General", "content":"", "id":0}),
 
         (f'python {sjournal_py} add Hello World',
-         {"category":"General", "content":"Hello World", "id":1}),
+         {"category":"General", "content":"Hello World", "id":0}),
         (f'python {sjournal_py} add "Hello World"',
-         {"category":"General", "content":"Hello World", "id":1}),
+         {"category":"General", "content":"Hello World", "id":0}),
 
         (f'python {sjournal_py} add -c "Test" Hello World',
-         {"category":"Test", "content":"Hello World", "id":1}),
+         {"category":"Test", "content":"Hello World", "id":0}),
         (f'python {sjournal_py} add -c "Test" "Hello World"',
-         {"category":"Test", "content":"Hello World", "id":1}),
+         {"category":"Test", "content":"Hello World", "id":0}),
 
         (f'python {sjournal_py} add -s "bold red" "Hello World"',
-         {"category":"General", "content":"[bold red]Hello World[/]", "id":1}),
+         {"category":"General", "content":"[bold red]Hello World[/]", "id":0}),
     ])
 def test_add_note(clean_journal_fixture, commandline, expected):
+    # Start with clean empty journal
     journal = clean_journal_fixture
 
-    logger.info("Add note via commandline")
-    logger.debug(f"commandline: {commandline}")
-    result = subprocess.run(commandline, capture_output=False)
-    assert result.returncode == 0
+    for i in range(10):
+        # Add note via commandline
+        logger.info(f"Add note {i} via commandline")
+        logger.debug(f"commandline: {commandline}")
+        result = subprocess.run(commandline, capture_output=False)
+        assert result.returncode == 0
 
-    logger.info("Journal should have 1 note")
-    notes = journal._get_notes()
-    assert len(notes) == 1
-    logger.debug(notes[0])
+        # Journal should have one more note
+        logger.info("Journal should have i+1 notes")
+        assert journal.length == i+1
+        logger.debug(journal.notes)
 
-    validate_note(notes[0], expected)
+        # Verify that the note has the correct data
+        expected_i = expected
+        expected_i["id"] = i
+        validate_note(journal.notes[-1], expected_i)
 
 
-def test_edit_note():
-    pytest.skip("TODO")
+def test_edit_note(journal_with_notes_fixture):
+    # Start with a journal that contains a few notes
+    journal = journal_with_notes_fixture
+
+    # For each note, edit it and confirm that the note data updates
+    for note_id in range(journal.length-1, -1, -1):
+
+        # Execute Command with subsequent input
+        logger.info(f"EDIT NOTE {note_id}")
+
+        proc = subprocess.Popen(['python', sjournal_py, 'edit', f'{note_id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = proc.communicate(input=b'EDITED')
+
+        logger.debug(result)
+        logger.debug(journal.notes)
+
+        # Confirm successful command
+        assert proc.returncode == 0
+
+        # Confirm that the note at note_id has been edited successfully
+        expected = {"category": "General", "content": f"EDITED", "id": note_id}
+        validate_note(journal.notes[note_id], expected)
 
 
 def test_delete_note(journal_with_notes_fixture):
+    # Start with a journal that contains a few notes
     journal = journal_with_notes_fixture
 
+    # Starting journal should have 3 notes
     logger.info("Journal should have 3 notes")
-    notes = journal._get_notes()
-    assert len(notes) == 3
+    assert journal.length == 3
 
-    for note_id in [3, 2, 1]:
+    # Delete the most recent note via the commandline until empty
+    full_length = journal.length
+    for note_id in range(full_length-1, -1, -1):
         logger.info(f"Delete note #{note_id}")
+
+        # Execute Command
         commandline = f'python {sjournal_py} delete {note_id}'
         result = subprocess.run(commandline, capture_output=True)
+
         logger.debug(f"stdout: {result.stdout}")
+
+        # Confirm successful command
         assert result.returncode == 0
 
-        notes = journal._get_notes()
-        logger.debug(notes)
-        assert len(notes) == note_id - 1
-        if len(notes) > 0:
+        # Confirm that the journal has 1 fewer note, and that the most recent note is the previous one
+        logger.debug(journal.notes)
+        assert journal.length == note_id, f"# of Notes is {journal.length} after deleting note {note_id}. Expected length of {note_id}"
+        if journal.length > 0:
+            # Most recent note has the correct data
             expected = {"category": "General", "content": f"Note {note_id - 1}", "id": note_id - 1}
-            validate_note(notes[-1], expected)
+            validate_note(journal.notes[-1], expected)
 
 
 def test_list():
