@@ -10,6 +10,7 @@ from rich.table import Table
 from rich.console import Console
 from utils import get_newest_file, range_parser, copy_to_clipboard
 from arguments import parse_args
+from tests.logger import logger
 
 
 class SJournal:
@@ -140,7 +141,7 @@ class SJournal:
         try:
             most_recent_id = cursor.fetchone()[0]
         except TypeError:
-            most_recent_id = 0
+            most_recent_id = -1
         note = Note(most_recent_id+1, note_data["category"], note_data["content"])
         self.insert_into_database_table("notes", note)
         self.connection.commit()
@@ -153,7 +154,7 @@ class SJournal:
 
     def edit(self):
         cursor = self.connection.cursor()
-        if self.args.id:
+        if self.args.id is not None:
             id_to_edit = self.args.id
         else:
             cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
@@ -355,6 +356,14 @@ class SJournal:
         self.db_file = os.path.join(self.root_dir, config["journal_dir"], f"{config['journal_name']}.db")
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
+
+    @property
+    def length(self):
+        return len(self.notes)
+
+    @property
+    def notes(self):
+        return self._get_notes()
 
     def _get_notes(self):
         self.create_connection()
