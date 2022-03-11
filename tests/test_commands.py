@@ -20,6 +20,10 @@ def clean_journal_fixture():
     config_file = os.path.join(ROOT_DIR, "config.json")
     backup_config_file = backup_file(config_file)
 
+    # if "automated_test.db" exists, delete it
+    journal_file = os.path.join(ROOT_DIR, "journals", "automated_test.db")
+    delete_file(journal_file)
+
     # create new test notebook
     args = argparse.Namespace(command="load", journal_name="automated_test")
     journal = SJournal(args)
