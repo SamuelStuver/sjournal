@@ -11,3 +11,4 @@ def generate_html_report_from_xml():
 if __name__ == "__main__":
     retcode = pytest.main()
     generate_html_report_from_xml()
+    
