@@ -280,6 +280,8 @@ class SJournal:
 
     def fetch(self):
         notes = []
+        if not self.connection:
+            self.create_connection()
         cursor = self.connection.cursor()
         query = "SELECT * FROM notes ORDER BY id DESC"
         cursor.execute(query)
@@ -359,24 +361,14 @@ class SJournal:
 
     @property
     def length(self):
-        return len(self.notes)
+        return self._get_length()
 
     @property
     def notes(self):
-        return self._get_notes()
+        return self.fetch()
 
-    def _get_notes(self):
-        self.create_connection()
-        query = "SELECT * FROM notes"
-        cursor = self.connection.cursor()
-        cursor.execute(query)
-        items = cursor.fetchall()
-        notes = []
-        for item in items:
-            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S")))
-        self.close_connection()
-
-        return notes
+    def _get_length(self):
+        return len(self.notes)
 
 
 class Note:
