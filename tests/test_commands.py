@@ -81,38 +81,40 @@ def test_load(clean_journal_fixture):
     delete_file(new_journal_file)
 
 
-@pytest.mark.parametrize('commandline, expected', [
-        (f'python {sjournal_py} add ""',
+@pytest.mark.parametrize('command, expected', [
+        (f'add ""',
          {"category":"General", "content":"", "id":0}),
 
-        (f'python {sjournal_py} add Hello World',
+        (f'add Hello World',
          {"category":"General", "content":"Hello World", "id":0}),
-        (f'python {sjournal_py} add "Hello World"',
+        (f'add "Hello World"',
          {"category":"General", "content":"Hello World", "id":0}),
 
-        (f'python {sjournal_py} add -c "Test" Hello World',
+        (f'add -c "Test" Hello World',
          {"category":"Test", "content":"Hello World", "id":0}),
-        (f'python {sjournal_py} add -c "Test" "Hello World"',
+        (f'add -c "Test" "Hello World"',
          {"category":"Test", "content":"Hello World", "id":0}),
 
-        (f'python {sjournal_py} add -s "bold red" "Hello World"',
+        (f'add -s "bold red" "Hello World"',
          {"category":"General", "content":"[bold red]Hello World[/]", "id":0}),
     ])
-def test_add_note(clean_journal_fixture, commandline, expected):
+def test_add_note(clean_journal_fixture, command, expected):
     # Start with clean empty journal
     journal = clean_journal_fixture
 
-    for i in range(10):
+    for i in range(5):
         # Add note via commandline
         logger.info(f"Add note {i} via commandline")
+
+        commandline = f"python {sjournal_py} " + command
+
         logger.debug(f"commandline: {commandline}")
         result = subprocess.run(commandline, capture_output=False)
         assert result.returncode == 0
 
         # Journal should have one more note
-        logger.info("Journal should have i+1 notes")
+        logger.info(f"Journal should have {i+1} note(s)")
         assert journal.length == i+1
-        logger.debug(journal.notes)
 
         # Verify that the note has the correct data
         expected_i = expected
