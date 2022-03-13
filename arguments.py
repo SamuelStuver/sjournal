@@ -25,7 +25,7 @@ def parse_args():
 
     # Categories command
     parser_categories = subparsers.add_parser('categories', help="List all categories in the current journal")
-    parser_categories.add_argument('search_criteria', nargs="?", action='store', type=str)
+    parser_categories.add_argument('-s', '--search', nargs="?", action='store', type=str)
 
     # Delete command
     parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')

@@ -21,11 +21,10 @@ class SJournal:
         self.journal_dir = ""
         self.journal_name = ""
         self.args = args
+        self.console = Console()
         self.load()
 
         self.create_connection()
-        self.console = Console()
-
         self.table = Table(title=self.journal_name)
         self.setup_table()
 
@@ -211,8 +210,8 @@ class SJournal:
         self.show_print_table()
 
     def categories(self):
-        if hasattr(self.args, 'search_criteria') and self.args.search_criteria:
-            regex = f"{self.args.search_criteria}"
+        if hasattr(self.args, 'search') and self.args.search:
+            regex = f"{self.args.search}"
         else:
             regex = ".*"
 
