@@ -6,7 +6,7 @@ import random
 import re
 import json
 import shutil
-from sjournal import SJournal, Note
+from src.sjournal import SJournal
 from utils_test import backup_file, delete_file, \
     get_project_root, \
     validate_note, validate_config, \
@@ -16,7 +16,12 @@ from logger import logger
 # Suite of testing to validate the CLI interface for sjournal using subprocess to call the application
 
 ROOT_DIR = get_project_root()
-sjournal_py = f"{os.path.join(ROOT_DIR, 'sjournal.py')}"
+HOME_DIR = os.path.expanduser('~')
+SJOURNAL_DIR = os.path.join(HOME_DIR, 'sjournal')
+
+DEBUG_OUTPUT = os.path.join(SJOURNAL_DIR, "reports", "debug.log")
+
+sjournal_py = f"{os.path.join(ROOT_DIR, 'run.py')}"
 
 n_gen_notes = 21
 n_gen_categories = 3
@@ -26,13 +31,22 @@ n_gen_styles = 5
 @pytest.fixture(scope="function")
 def clean_journal():
 
-    logger.info(f"setup clean journal at {os.path.join(ROOT_DIR, 'journals', 'automated_test.db')}")
-    # backup current config file
-    config_filename = os.path.join(ROOT_DIR, "config.json")
-    backup_config_file = backup_file(config_filename)
+    # Make the reports directory in ~/sjournal/ if it does not exist
+    if not os.path.isdir(os.path.dirname(DEBUG_OUTPUT)):
+        os.makedirs(os.path.dirname(DEBUG_OUTPUT))
+
+    logger.info(f"setup clean journal at {os.path.join(HOME_DIR, 'sjournal', 'journals', 'automated_test.db')}")
+    # backup current config file if one exists
+    config_filename = os.path.join(SJOURNAL_DIR, "sjournal_config.json")
+    if os.path.isfile(config_filename):
+        backup_config_file = backup_file(config_filename)
+        config_file_existed = True
+    else:
+        backup_config_file = False
+        config_file_existed = False
 
     # if "automated_test.db" exists, delete it
-    journal_file = os.path.join(ROOT_DIR, "journals", "automated_test.db")
+    journal_file = os.path.join(SJOURNAL_DIR, "journals", "automated_test.db")
     if os.path.isfile(journal_file):
         delete_file(journal_file)
 
@@ -44,18 +58,24 @@ def clean_journal():
     yield journal
 
     # delete notebook
-    journal_file = os.path.join(ROOT_DIR, "journals", "automated_test.db")
+    journal_file = os.path.join(SJOURNAL_DIR, "journals", "automated_test.db")
     delete_file(journal_file)
 
-    with open(config_filename, "r") as config_file:
-        config = json.load(config_file)
-
-    # restore config file
-    backup_file(backup_config_file, config_filename)
-    delete_file(backup_config_file)
+    # restore default config file
+    if config_file_existed:
+        backup_file(backup_config_file, config_filename)
+        delete_file(backup_config_file)
+    else:
+        config = {
+            "journal_dir": os.path.join(HOME_DIR, "sjournal", "journals"),
+            "journal_name": "notes"
+        }
+        confstring = json.dumps(config)
+        with open(config_filename, "w") as config_file:
+            config_file.write(confstring)
 
     # delete any backups used for test
-    backup_dir = os.path.join(ROOT_DIR, "journals", "backups", "automated_test")
+    backup_dir = os.path.join(SJOURNAL_DIR, "journals", "backups", "automated_test")
     if os.path.isdir(backup_dir):
         shutil.rmtree(backup_dir)
 
@@ -115,7 +135,7 @@ def test_load(clean_journal):
     assert journal.length == 0
 
     # Verify that the correct config info is used with starting journal
-    validate_config({"journal_dir": "journals", "journal_name": "automated_test"})
+    validate_config({"journal_dir": os.path.join(SJOURNAL_DIR, "journals"), "journal_name": "automated_test"})
 
     # Load a new journal
     logger.info("Load a new journal named 'delete_this_journal'")
@@ -125,11 +145,11 @@ def test_load(clean_journal):
     assert result.returncode == 0
 
     # Verify that the correct config info is used with new journal
-    validate_config({"journal_dir": "journals", "journal_name": "delete_this_journal"})
+    validate_config({"journal_dir": os.path.join(SJOURNAL_DIR, "journals"), "journal_name": "delete_this_journal"})
 
     # Delete the new journal
     logger.info("Delete the new journal file")
-    new_journal_file = os.path.join(ROOT_DIR, "journals", "delete_this_journal.db")
+    new_journal_file = os.path.join(SJOURNAL_DIR, "journals", "delete_this_journal.db")
     delete_file(new_journal_file)
 
 
@@ -277,8 +297,7 @@ def test_list_default(random_journal, command):
     assert result.returncode == 0
 
     # Read debug text into string
-    debug_file = os.path.join(ROOT_DIR, "reports", "debug.log")
-    with open(debug_file, "r") as output_file:
+    with open(DEBUG_OUTPUT, "r") as output_file:
         full_text = output_file.read()
 
     logger.debug(full_text)
@@ -318,8 +337,7 @@ def test_categories(random_journal, command):
     assert result.returncode == 0
 
     # Read debug text into string
-    debug_file = os.path.join(ROOT_DIR, "reports", "debug.log")
-    with open(debug_file, "r") as output_file:
+    with open(DEBUG_OUTPUT, "r") as output_file:
         full_text = output_file.read()
 
     logger.debug(full_text)
@@ -354,7 +372,7 @@ def test_backup(random_journal, command):
     assert result.returncode == 0
 
     # Verify that the backup exists
-    backup_dir = os.path.join(ROOT_DIR, "journals", "backups", "automated_test")
+    backup_dir = os.path.join(SJOURNAL_DIR, "journals", "backups", "automated_test")
     assert os.path.isdir(backup_dir)
 
     with os.scandir(backup_dir) as dir_contents:
@@ -371,7 +389,7 @@ def test_backup(random_journal, command):
 
     # Load the backup and confirm that all original notes are present
     # Change config file to reflect backup location
-    config_file_path = os.path.join(ROOT_DIR, "config.json")
+    config_file_path = os.path.join(SJOURNAL_DIR, "sjournal_config.json")
     config = {
         "journal_dir": os.path.join("journals", "backups", "automated_test"),
         "journal_name": backup_journal_filename
@@ -477,8 +495,7 @@ def test_search(fixed_notes_journal, command):
             assert result.returncode == 0
 
             # Read debug text into string
-            debug_file = os.path.join(ROOT_DIR, "reports", "debug.log")
-            with open(debug_file, "r") as output_file:
+            with open(DEBUG_OUTPUT, "r") as output_file:
                 full_text = output_file.read()
 
             logger.debug(full_text)
@@ -496,8 +513,7 @@ def test_search(fixed_notes_journal, command):
         assert result.returncode == 0
 
         # Read debug text into string
-        debug_file = os.path.join(ROOT_DIR, "reports", "debug.log")
-        with open(debug_file, "r") as output_file:
+        with open(DEBUG_OUTPUT, "r") as output_file:
             full_text = output_file.read()
 
         logger.debug(full_text)
@@ -510,3 +526,10 @@ def test_search(fixed_notes_journal, command):
             match = re.search(regex, full_text)
             assert match, f"Could not find Note # {note.id} in debug output\n{regex}"
             logger.debug(match.group(0))
+
+
+def test_dummy():
+    logger.info(f"{ROOT_DIR=}")
+    logger.info(f"{HOME_DIR=}")
+    logger.info(f"{SJOURNAL_DIR=}")
+    logger.info(f"{DEBUG_OUTPUT=}")

@@ -74,7 +74,12 @@ class SJournal:
 
         if self.args.debug:
             self.console.print(self.args)
-            debug_file = os.path.join(self.root_dir, "reports", "debug.log")
+            debug_file = os.path.join(self.user_home_dir, "sjournal", "reports", "debug.log")
+
+            # Make the reports directory in ~/sjournal/ if it does not exist
+            if not os.path.isdir(os.path.dirname(debug_file)):
+                os.makedirs(os.path.dirname(debug_file))
+            self.console.print(f"debug output at {debug_file}")
             with open(debug_file, "wt") as debug_log:
                 self.console = Console(file=debug_log, width=100)
                 if action:

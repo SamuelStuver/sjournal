@@ -1,4 +1,4 @@
 import pytest
-from sjournal import SJournal, Note
+from src.sjournal import SJournal
 
 # Unit tests for the SJournal, Note, and Utility methods
