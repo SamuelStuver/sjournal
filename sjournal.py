@@ -8,6 +8,7 @@ import sqlite3
 from sqlite3 import Error
 from rich.table import Table
 from rich.console import Console
+from rich.prompt import Prompt
 from utils import get_newest_file, range_parser, copy_to_clipboard
 from arguments import parse_args
 from tests.logger import logger
@@ -176,9 +177,9 @@ class SJournal:
         old_category, old_content, old_timestamp = cursor.fetchone()
 
         copy_to_clipboard(old_content)
-        self.console.print(f'Editing Note #{id_to_edit} (copied to clipboard): "{old_content}"')
+        self.console.print(f'Editing Note #{id_to_edit} [bold cyan](copied to clipboard with style markup)[/]: "{old_content}"')
 
-        new_content = input("Enter new note text: ")
+        new_content = Prompt.ask("Enter new note text", default=old_content)
 
         new_note = Note(id_to_edit, old_category, new_content)
         new_note.timestamp = old_timestamp
