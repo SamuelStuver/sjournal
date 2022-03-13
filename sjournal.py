@@ -15,7 +15,6 @@ from tests.logger import logger
 
 class SJournal:
     def __init__(self, args):
-        print(args)
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
         self.config_file = os.path.join(self.root_dir, "config.json")
         self.db_file = ""
@@ -51,7 +50,7 @@ class SJournal:
             conn = sqlite3.connect(self.db_file)
             self.connection = conn
         except Error:
-            print(Error)
+            self.console.print(Error)
             self.connection = None
 
     def close_connection(self):
@@ -62,7 +61,9 @@ class SJournal:
             self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
 
         action = self.handle_args()
+
         if self.args.debug:
+            self.console.print(self.args)
             debug_file = os.path.join(self.root_dir, "reports", "debug.log")
             with open(debug_file, "wt") as debug_log:
                 self.console = Console(file=debug_log, width=100)
@@ -173,7 +174,7 @@ class SJournal:
         old_category, old_content, old_timestamp = cursor.fetchone()
 
         copy_to_clipboard(old_content)
-        print(f'Editing Note #{id_to_edit} (copied to clipboard): "{old_content}"')
+        self.console.print(f'Editing Note #{id_to_edit} (copied to clipboard): "{old_content}"')
 
         new_content = input("Enter new note text: ")
 
@@ -206,11 +207,10 @@ class SJournal:
         for item in items_to_show:
             note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
             self.insert_into_print_table(note)
-            # print(note)
+
         self.show_print_table()
 
     def categories(self):
-        print(self.args)
         if hasattr(self.args, 'search_criteria') and self.args.search_criteria:
             regex = f"{self.args.search_criteria}"
         else:
@@ -226,16 +226,14 @@ class SJournal:
         for item in cursor.fetchall():
             match = re.search(regex.lower(), item[0].lower())
             if match:
-                print(item[0])
+                self.console.print(item[0])
 
     def delete(self):
         ids_to_delete = range_parser(self.args.delete_criteria)
-        print(ids_to_delete)
         cursor = self.connection.cursor()
         for id in ids_to_delete:
-            print(id)
             if isinstance(id, int):
-                print(f"DELETING NOTE #{id}")
+                self.console.print(f"DELETING NOTE #{id}")
                 cursor.execute(f'DELETE FROM notes WHERE id={id}')
             else:
                 regex_below = r"\W(\d*)"
@@ -245,13 +243,13 @@ class SJournal:
 
                 if match_below and match_below.group(1).isnumeric():
                     for i in range(0, int(match_below.group(1))+1):
-                        print(f"DELETING NOTE #{i}")
+                        self.console.print(f"DELETING NOTE #{i}")
                         cursor.execute(f'DELETE FROM notes WHERE id={i}')
                 elif match_above and match_above.group(1).isnumeric():
                     cursor.execute('SELECT max(id) FROM notes')
                     max_id = cursor.fetchone()[0]
                     for i in range(int(match_above.group(1)), max_id+1):
-                        print(f"DELETING NOTE #{i}")
+                        self.console.print(f"DELETING NOTE #{i}")
                         cursor.execute(f'DELETE FROM notes WHERE id={i}')
         self.connection.commit()
 
@@ -284,7 +282,7 @@ class SJournal:
             if match:
                 note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
                 self.insert_into_print_table(note)
-                # print(note)
+
         self.show_print_table()
 
     def backup(self):
@@ -300,7 +298,7 @@ class SJournal:
             new_filename = os.path.join(backup_dir, self.args.filename)
 
         new_filename = new_filename.replace(".db", "") + ".db"
-        print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
+        self.console.print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
         shutil.copy(self.db_file, new_filename)
 
     def restore(self):
@@ -313,15 +311,15 @@ class SJournal:
 
         if filename and os.path.exists(filename.replace(".db", "") + ".db"):
             filename = filename.replace(".db", "") + ".db"
-            print(f"RESTORING BACKUP FROM {filename}. REPLACING {self.db_file}")
+            self.console.print(f"RESTORING BACKUP FROM {filename}. REPLACING {self.db_file}")
             shutil.copy(filename, self.db_file)
             # self.db_file = filename
         else:
-            print(f"Failed to restore backup: file not found.")
+            self.console.print(f"Failed to restore backup: file not found.")
 
     def load(self):
         if not os.path.isfile(os.path.join(self.root_dir, "config.json")):
-            print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'config.json')}")
+            self.console.print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'config.json')}")
             config = {
                 "journal_dir": "journals",
                 "journal_name": "notes"
@@ -341,7 +339,7 @@ class SJournal:
                 config_file.write(confstring)
 
             msg = f'Set journal to {os.path.join(self.root_dir, config["journal_dir"], config["journal_name"])}.db'
-            print(msg)
+            self.console.print(msg)
 
         else:
             # Use the file specified in the config file
