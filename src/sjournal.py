@@ -23,7 +23,7 @@ from ._version import __version__
 class SJournal:
     def __init__(self, args):
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config_file = os.path.join(self.root_dir, "config.json")
+        self.config_file = os.path.join(self.root_dir, "sjournal_config.json")
         self.db_file = ""
         self.journal_dir = ""
         self.journal_name = ""
@@ -327,8 +327,8 @@ class SJournal:
             self.console.print(f"Failed to restore backup: file not found.")
 
     def load(self):
-        if not os.path.isfile(os.path.join(self.root_dir, "config.json")):
-            self.console.print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'config.json')}")
+        if not os.path.isfile(os.path.join(self.root_dir, "sjournal_config.json")):
+            self.console.print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'sjournal_config.json')}")
             config = {
                 "journal_dir": "journals",
                 "journal_name": "notes"
