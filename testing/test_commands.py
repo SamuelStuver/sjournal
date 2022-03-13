@@ -13,7 +13,7 @@ from utils_test import backup_file, delete_file, \
     random_string, random_hex_color
 from logger import logger
 
-# Suite of tests to validate the CLI interface for sjournal using subprocess to call the application
+# Suite of testing to validate the CLI interface for sjournal using subprocess to call the application
 
 ROOT_DIR = get_project_root()
 sjournal_py = f"{os.path.join(ROOT_DIR, 'sjournal.py')}"
