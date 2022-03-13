@@ -13,11 +13,11 @@ from rich.console import Console
 from rich.prompt import Prompt
 
 # Internal modules
-from utils import get_newest_file, range_parser, copy_to_clipboard
-from arguments import parse_args
+from .utilities.utilities import get_newest_file, range_parser, copy_to_clipboard
+from .utilities.arguments import parse_args
 
 # Version
-from ._version import __version__
+from .utilities.version import __version__
 
 
 class SJournal:
@@ -427,7 +427,7 @@ def main():
     args = parse_args()
 
     if args.version:
-        return __version__
-
-    journal = SJournal(args)
-    journal.run()
+        print(__version__)
+    else:
+        journal = SJournal(args)
+        journal.run()

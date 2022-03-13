@@ -1,6 +1,15 @@
 import json
 import os
 
+
+def current_version(config_file: str) -> str:
+    # Open the file and read the version.
+    with open(config_file, "r") as f:
+        config_object = json.load(f)
+        current_version = config_object["version"]
+
+    return current_version
+
 # Bump the version.
 def bump_version(config_file: str) -> str:
 
@@ -27,7 +36,7 @@ def copy_version_to_package(path: str, v: str):
     """ Copy the single source of truth version number into the package as well. """
 
     # Copy __version__ to all root-level files in path.
-    copy_files = ["_version.py"]
+    copy_files = ["utilities/version.py"]
 
     for file_name in copy_files:
         target_file = os.path.join(path, file_name)

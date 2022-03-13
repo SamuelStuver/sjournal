@@ -2,7 +2,7 @@
 import os
 import setuptools
 import json
-from version_utils import bump_version, copy_version_to_package
+from version_utils import bump_version, copy_version_to_package, current_version
 
 # ======================================================================================================================
 # Fill in this information for each package.
@@ -62,7 +62,7 @@ if PACKAGE_NAME_OVERRIDE is None:
 # ======================================================================================================================
 
 # Bump and copy the version.
-version = bump_version(CONFIG_FILE)
+version = current_version(CONFIG_FILE)
 copy_version_to_package(PACKAGE_PATH, version)
 
 # Copy the README into the long description.
@@ -93,6 +93,8 @@ setuptools.setup(
     packages=packages,
     package_dir={PACKAGE_NAME: PACKAGE_PATH},
     install_requires=requirement_packages,
-    classifiers=[f"Programming Language :: Python :: {PYTHON_VERSION}"],
+    classifiers=[f"Programming Language :: Python :: {PYTHON_VERSION}",
+                 "License :: OSI Approved :: MIT License",
+                 "Operating System :: OS Independent"],
     entry_points={"console_scripts": SCRIPTS},
 )
