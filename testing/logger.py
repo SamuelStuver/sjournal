@@ -12,7 +12,7 @@ def initialize_logger():
 
     # Handlers
     c_handler = logging.StreamHandler(sys.stdout)
-    f_handler = logging.FileHandler(filename=f'reports/log.log', mode='w')
+    f_handler = logging.FileHandler(filename=f'reports/test_log.log', mode='w')
     c_handler.setLevel("DEBUG")
     f_handler.setLevel("DEBUG")
 
