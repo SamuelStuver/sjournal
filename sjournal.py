@@ -26,6 +26,7 @@ class SJournal:
 
         self.create_connection()
         self.console = Console()
+
         self.table = Table(title=self.journal_name)
         self.setup_table()
 
@@ -38,6 +39,7 @@ class SJournal:
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
         # If command is "load", it is already run at startup, so don't run it again
+
         if self.args.command:
             if self.args.command != "load":
                 return getattr(self, self.args.command)
@@ -60,8 +62,15 @@ class SJournal:
             self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
 
         action = self.handle_args()
-        if action:
-            action()
+        if self.args.debug:
+            debug_file = os.path.join(self.root_dir, "reports", "debug.log")
+            with open(debug_file, "wt") as debug_log:
+                self.console = Console(file=debug_log, width=100)
+                if action:
+                    action()
+        else:
+            if action:
+                action()
         self.close_connection()
 
     def table_exists(self, table_name):
