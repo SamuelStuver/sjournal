@@ -1,6 +1,8 @@
 import shutil
 import os
 import json
+import random
+import string
 from logger import logger
 
 
@@ -28,8 +30,22 @@ def delete_file(file_path):
         logger.warning(f"file does not exist to delete: {file_path}")
         return False
 
-# VALIDATIONS
 
+def random_string(length, use_punctuation=False, exclude=None):
+    options = " " + string.ascii_letters
+    if use_punctuation:
+        options += string.punctuation
+    if exclude:
+        for c in exclude:
+            options = options.replace(c, '')
+    return ''.join([random.choice(options) for i in range(length)])
+
+
+def random_hex_color():
+    return "#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])
+
+
+# VALIDATIONS
 
 def validate_note(note, expected):
     logger.info("Verify that the note has the correct data")
