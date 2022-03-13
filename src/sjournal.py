@@ -1,16 +1,24 @@
+# Standard Library
 import json
 import re
 import os
 import shutil
-import PySimpleGUI as sg
 from datetime import datetime
-import sqlite3
-from sqlite3 import Error
+from sqlite3 import Error, connect
+
+# External Libraries
+import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
+
+# Internal modules
 from utils import get_newest_file, range_parser, copy_to_clipboard
 from arguments import parse_args
+
+# Version
+from ._version import __version__
+
 
 class SJournal:
     def __init__(self, args):
@@ -45,7 +53,7 @@ class SJournal:
 
     def create_connection(self):
         try:
-            conn = sqlite3.connect(self.db_file)
+            conn = connect(self.db_file)
             self.connection = conn
         except Error:
             self.console.print(Error)
@@ -415,7 +423,11 @@ class Note:
                self.timestamp == other.timestamp
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
+
+    if args.version:
+        return __version__
+
     journal = SJournal(args)
     journal.run()
