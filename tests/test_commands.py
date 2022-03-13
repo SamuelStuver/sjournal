@@ -49,7 +49,6 @@ def clean_journal():
 
     with open(config_filename, "r") as config_file:
         config = json.load(config_file)
-    logger.info(f"TEST: {config}")
 
     # restore config file
     backup_file(backup_config_file, config_filename)

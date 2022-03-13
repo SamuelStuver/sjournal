@@ -11,8 +11,6 @@ from rich.console import Console
 from rich.prompt import Prompt
 from utils import get_newest_file, range_parser, copy_to_clipboard
 from arguments import parse_args
-from tests.logger import logger
-
 
 class SJournal:
     def __init__(self, args):
