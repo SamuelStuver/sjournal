@@ -16,9 +16,9 @@ from logger import logger
 ROOT_DIR = get_project_root()
 sjournal_py = f"{os.path.join(ROOT_DIR, 'sjournal.py')}"
 
-n_random_notes = 21
-n_random_categories = 3
-n_random_styles = 5
+n_gen_notes = 21
+n_gen_categories = 3
+n_gen_styles = 5
 
 
 @pytest.fixture(scope="function")
@@ -54,7 +54,11 @@ def clean_journal_fixture():
 def journal_with_notes_fixture(clean_journal_fixture):
     journal = clean_journal_fixture
 
-    for i in range(3):
+    categories = []
+    for c in range(n_gen_categories):
+        categories.append(f"Category {c}")
+
+    for i in range(n_gen_notes):
         journal.create_connection()
         journal.args = argparse.Namespace(command="add", category="General", content=[f"Note {i}"], style="", debug=False)
         journal.run()
@@ -68,18 +72,18 @@ def random_journal(clean_journal_fixture):
 
     # Generate random category names
     categories = []
-    for c in range(n_random_categories):
+    for c in range(n_gen_categories):
         categories.append(random_string(10))
     logger.debug(f"generated categores: {categories}")
 
     # Generate random styles
     styles = []
-    for s in range(n_random_styles):
+    for s in range(n_gen_styles):
         styles.append(f"bold {random_hex_color()}")
     logger.debug(f"generated styles: {styles}")
 
     # Populate journal
-    for n in range(n_random_notes):
+    for n in range(n_gen_notes):
         category = categories[n % len(categories)]
         journal.create_connection()
         content = ' '.join([random_string(random.randint(1, 20)) for i in range(50)])
@@ -162,7 +166,6 @@ def test_add_note(clean_journal_fixture, command, expected):
 def test_edit_note(journal_with_notes_fixture):
     # Start with a journal that contains a few notes
     journal = journal_with_notes_fixture
-
     # For each note, edit it and confirm that the note data updates
     for note_id in range(journal.length-1, -1, -1):
 
@@ -173,7 +176,6 @@ def test_edit_note(journal_with_notes_fixture):
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
-        logger.debug(journal.notes)
 
         # Confirm successful command
         assert proc.returncode == 0
@@ -189,7 +191,7 @@ def test_delete_note(journal_with_notes_fixture):
 
     # Starting journal should have 3 notes
     logger.info("Journal should have 3 notes")
-    assert journal.length == 3
+    assert journal.length == n_gen_notes
 
     # Delete the most recent note via the commandline until empty
     full_length = journal.length
@@ -214,11 +216,6 @@ def test_delete_note(journal_with_notes_fixture):
             validate_note(journal.notes[-1], expected)
 
 
-# quantity              Specify the amount of results to list
-# -a, --all             List all notes under given criteria
-# -c [CATEGORY], --category [CATEGORY] Choose a category of notes to list
-# -r, --reverse         Display notes in reverse chronological order
-# Start with a journal that contains a few notes
 @pytest.mark.parametrize('command', [
         '',
         'list',
@@ -279,21 +276,49 @@ def test_list_default(random_journal, command):
     header = rf"ID\s+\|\s+Timestamp\s+\|\s+Category\s+\|\s+Content\s+"
     match = re.search(header, full_text)
     assert match, f"Could not find header in debug output"
+    logger.debug(match.group(0))
 
     # Search output text for each note
     for i, note in enumerate(notes[-n_printed:]):
-        logger.info(f"SEARCHING FOR NOTE {i} (not ID) OUT OF {n_printed}")
         regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
         match = re.search(regex, full_text)
         assert match, f"Could not find Note # {note.id} in debug output\n{regex}"
         logger.debug(match.group(0))
 
 
-def test_list_by_category(random_journal):
-    pytest.skip("TODO")
+@pytest.mark.parametrize('command', [
+        'categories',
+        'categories -s',
+    ]
+ )
+def test_categories(random_journal, command):
+    journal = random_journal
+    notes = journal.notes
+    expected_categories = list(set([note.category for note in notes]))
 
-def test_categories():
-    pytest.skip("TODO")
+    commandline = f"python {sjournal_py} --debug " + command
+    if "-s" in command:
+        commandline += f" {expected_categories[0]}"
+        expected_categories = [expected_categories[0]]
+
+    logger.debug(commandline)
+    result = subprocess.run(commandline, capture_output=False)
+    logger.debug(result)
+    assert result.returncode == 0
+
+    # Read debug text into string
+    debug_file = os.path.join(ROOT_DIR, "reports", "debug.log")
+    with open(debug_file, "r") as output_file:
+        full_text = output_file.read()
+
+    logger.debug(full_text)
+
+    # Search output text for each category
+    for category in expected_categories:
+        regex = rf"{category}"
+        match = re.search(regex, full_text)
+        assert match, f"Could not find category {category} in debug output"
+        logger.debug(match.group(0))
 
 
 def test_backup():
