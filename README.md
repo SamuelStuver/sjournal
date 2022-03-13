@@ -1,4 +1,4 @@
-# sjournal 
+# sjournal ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/SamuelStuver/sjournal?include_prereleases&logo=github)
 A simple and light-weight notepad for the command line:
 
 ![Demo](/demo.png)
