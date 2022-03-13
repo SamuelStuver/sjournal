@@ -37,7 +37,7 @@ def parse_args():
                              help="ID of note to edit")
 
     # Erase command
-    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the database')
+    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the current journal')
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')

@@ -24,7 +24,7 @@ class SJournal:
         self.console = Console()
         self.load()
 
-        self.create_connection()
+        # self.create_connection()
         self.table = Table(title=self.journal_name)
         self.setup_table()
 
@@ -56,6 +56,9 @@ class SJournal:
         self.connection.close()
 
     def run(self):
+
+        self.create_connection()
+
         if not self.table_exists("notes"):
             self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
 
@@ -405,6 +408,12 @@ class Note:
 
     def __repr__(self):
         return self.__str__()
+
+    def __eq__(self, other):
+        return self.id == other.id and \
+               self.category == other.category and \
+               self.content == other.content and \
+               self.timestamp == other.timestamp
 
 
 if __name__ == "__main__":
