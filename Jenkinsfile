@@ -5,8 +5,10 @@ pipeline {
       steps {
         sh 'pwd'
         sh 'whoami'
-        sh 'pyenv --version'
-        sh 'pyenv update'
+        withEnv(['PYENV_ROOT="$HOME/.pyenv"', 'PATH="$PYENV_ROOT/bin:$PATH"']) {
+            sh 'pyenv --version'
+            sh 'pyenv update'
+        }
       }
     }
 
