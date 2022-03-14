@@ -2,11 +2,21 @@ pipeline {
     agent any
     stages {
         stage('Build') {
-            agent { dockerfile true }
             steps {
-                sh 'ls'
+                sh 'pip install -r requirements.txt'
+                sh 'cd publish'
+                sh 'sh ./publish_local.sh'
+            }
+        }
+        stage('Test') {
+            steps {
                 sh 'pwd'
-                sh 'whoami'
+            }
+        }
+        stage('Cleanup') {
+            steps {
+                sh 'pip uninstall -r requirements.txt -y'
+                sh 'pip uninstall sjournal'
             }
         }
     }
