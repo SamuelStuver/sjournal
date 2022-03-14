@@ -159,6 +159,8 @@ class SJournal:
         note_content = ' '.join(self.args.content)
         if self.args.style:
             note_content = f"[{self.args.style}]{note_content}[/]"
+        else:
+            note_content = note_content
 
         note_data = {"category": self.args.category, "content": note_content}
         cursor = self.connection.cursor()

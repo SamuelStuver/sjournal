@@ -15,13 +15,7 @@ from logger import logger
 
 # Suite of testing to validate the CLI interface for sjournal using subprocess to call the application
 
-ROOT_DIR = get_project_root()
-HOME_DIR = os.path.expanduser('~')
-SJOURNAL_DIR = os.path.join(HOME_DIR, 'sjournal')
 
-DEBUG_OUTPUT = os.path.join(SJOURNAL_DIR, "reports", "debug.log")
-
-sjournal_py = f"{os.path.join(ROOT_DIR, 'run.py')}"
 
 n_gen_notes = 21
 n_gen_categories = 3
@@ -29,7 +23,8 @@ n_gen_styles = 5
 
 
 @pytest.fixture(scope="function")
-def clean_journal():
+def clean_journal(environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
     # Make the reports directory in ~/sjournal/ if it does not exist
     if not os.path.isdir(os.path.dirname(DEBUG_OUTPUT)):
@@ -124,7 +119,9 @@ def random_journal(clean_journal):
     yield journal
 
 
-def test_load(clean_journal):
+def test_load(clean_journal, environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with clean empty journal
     journal = clean_journal
     logger.info("Clean journal should have the correct name")
@@ -139,7 +136,7 @@ def test_load(clean_journal):
 
     # Load a new journal
     logger.info("Load a new journal named 'delete_this_journal'")
-    commandline = f'python {sjournal_py} load delete_this_journal'
+    commandline = f'{sjournal_exec} load delete_this_journal'
     result = subprocess.run(commandline, capture_output=True)
     logger.debug(f"stdout: {result.stdout}")
     assert result.returncode == 0
@@ -170,15 +167,15 @@ def test_load(clean_journal):
         (f'add -s "bold red" "Hello World"',
          {"category":"General", "content":"[bold red]Hello World[/]", "id":0}),
 ])
-def test_add_note(clean_journal, command, expected):
+def test_add_note(clean_journal, environment, command, expected):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
     # Start with clean empty journal
     journal = clean_journal
-
     for i in range(5):
         # Add note via commandline
         logger.info(f"Add note {i} via commandline")
 
-        commandline = f"python {sjournal_py} " + command
+        commandline = f"{sjournal_exec} " + command
 
         logger.debug(f"commandline: {commandline}")
         result = subprocess.run(commandline, capture_output=False)
@@ -194,7 +191,9 @@ def test_add_note(clean_journal, command, expected):
         validate_note(journal.notes[-1], expected_i)
 
 
-def test_edit_note(fixed_notes_journal):
+def test_edit_note(fixed_notes_journal, environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
     notes = journal.notes
@@ -205,7 +204,7 @@ def test_edit_note(fixed_notes_journal):
         # Execute Command with subsequent input
         logger.info(f"EDIT NOTE {note.id}")
 
-        proc = subprocess.Popen(['python', sjournal_py, 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(['python', sjournal_exec, 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
@@ -218,7 +217,9 @@ def test_edit_note(fixed_notes_journal):
         validate_note(journal.notes[note.id], expected)
 
 
-def test_delete_note(fixed_notes_journal):
+def test_delete_note(fixed_notes_journal, environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
     original_notes = journal.notes
@@ -232,7 +233,7 @@ def test_delete_note(fixed_notes_journal):
         logger.info(f"Delete note #{note.id}")
 
         # Execute Command
-        commandline = f'python {sjournal_py} delete {note.id}'
+        commandline = f'{sjournal_exec} delete {note.id}'
         result = subprocess.run(commandline, capture_output=True)
 
         logger.debug(f"stdout: {result.stdout}")
@@ -267,12 +268,13 @@ def test_delete_note(fixed_notes_journal):
         'list -a -r -c',
         'list 10 -a -r -c',
 ])
-def test_list_default(random_journal, command):
+def test_list_default(random_journal, environment, command):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
     journal = random_journal
     notes = journal.notes
 
-    commandline = f"python {sjournal_py} --debug " + command
+    commandline = f"{sjournal_exec} --debug " + command
 
     n_printed = 5
     if '-c' in command:
@@ -320,13 +322,15 @@ def test_list_default(random_journal, command):
         'categories',
         'categories -s',
 ])
-def test_categories(random_journal, command):
+def test_categories(random_journal, environment, command):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     journal = random_journal
     notes = journal.notes
     expected_categories = list(set([note.category for note in notes]))
 
     # List categories via command line
-    commandline = f"python {sjournal_py} --debug " + command
+    commandline = f"{sjournal_exec} --debug " + command
     if "-s" in command:
         commandline += f' "{expected_categories[0]}"'
         expected_categories = [expected_categories[0]]
@@ -354,13 +358,15 @@ def test_categories(random_journal, command):
         'backup',
         'backup -f delete_this_backup',
 ])
-def test_backup(random_journal, command):
+def test_backup(random_journal, environment, command):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with populated journal
     original_journal = random_journal
     original_notes = original_journal.notes
 
     # Backup journal via command line
-    commandline = f"python {sjournal_py} " + command
+    commandline = f"{sjournal_exec} " + command
     if "-f" in command:
         expected_backup_filename = command.split()[-1]
     else:
@@ -416,7 +422,9 @@ def test_backup(random_journal, command):
         # ('restore', 'delete -j'),
         # ('restore -f delete_this_backup', 'delete -j'),
 ])
-def test_restore(random_journal, command, action):
+def test_restore(random_journal, environment, command, action):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with populated journal
     original_journal = random_journal
     original_notes = original_journal.notes
@@ -448,7 +456,7 @@ def test_restore(random_journal, command, action):
     assert original_journal.length == 0
 
     # Restore the journal
-    commandline = f"python {sjournal_py} " + command
+    commandline = f"{sjournal_exec} " + command
     logger.debug(commandline)
     result = subprocess.run(commandline, capture_output=False)
     logger.debug(result)
@@ -460,12 +468,14 @@ def test_restore(random_journal, command, action):
         assert note == original_notes[i], f"New Note does not equal old Note:\nNew: {note}\nOld: {original_notes[i]}"
 
 
-def test_erase(random_journal):
+def test_erase(random_journal, environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     journal = random_journal
     assert journal.length == n_gen_notes
 
     # Erase the notebook via the command line
-    commandline = f"python {sjournal_py} --debug erase"
+    commandline = f"{sjournal_exec} --debug erase"
     logger.debug(commandline)
     result = subprocess.run(commandline, capture_output=False)
     logger.debug(result)
@@ -477,19 +487,21 @@ def test_erase(random_journal):
         'search Note 1',
         'search',
 ])
-def test_search(fixed_notes_journal, command):
+def test_search(fixed_notes_journal, environment, command):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with populated, non-random journal
     journal = fixed_notes_journal
     notes = journal.notes
     for note in notes:
         logger.debug(note)
     # Search the notes via commandline with debug
-    commandline = f"python {sjournal_py} --debug " + command
+    commandline = f"{sjournal_exec} --debug " + command
 
     if "Note" not in command:
         for i, note in enumerate(notes):
             # send command
-            commandline = f"python {sjournal_py} --debug {command} {i}"
+            commandline = f"{sjournal_exec} --debug {command} {i}"
             result = subprocess.run(commandline, capture_output=False)
             logger.debug(result)
             assert result.returncode == 0
@@ -528,8 +540,11 @@ def test_search(fixed_notes_journal, command):
             logger.debug(match.group(0))
 
 
-def test_dummy():
+def test_dummy(environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     logger.info(f"{ROOT_DIR=}")
     logger.info(f"{HOME_DIR=}")
     logger.info(f"{SJOURNAL_DIR=}")
     logger.info(f"{DEBUG_OUTPUT=}")
+    logger.info(f"{sjournal_exec=}")
