@@ -193,6 +193,9 @@ def test_add_note(clean_journal, environment, command, expected):
 
 def test_edit_note(fixed_notes_journal, environment):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    for e in environment:
+        logger.info(f"{e=}")
+
 
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
@@ -203,8 +206,9 @@ def test_edit_note(fixed_notes_journal, environment):
 
         # Execute Command with subsequent input
         logger.info(f"EDIT NOTE {note.id}")
+        logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
 
-        proc = subprocess.Popen(['python', sjournal_exec, 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
