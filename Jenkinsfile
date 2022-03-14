@@ -3,7 +3,10 @@ pipeline {
   stages {
     stage('Build') {
       steps {
-        git(url: 'https://github.com/SamuelStuver/sjournal', branch: 'staging')
+        sh 'curl -L https://github.com/pyenv/pyenv-installer/raw/master/bin/pyenv-installer | bash'
+        sh 'exec $SHELL'
+        sh 'pyenv --version'
+        sh 'pyenv update'
       }
     }
 
