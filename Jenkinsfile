@@ -3,7 +3,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'apt-get install python3.9'
+                sh 'sudo apt-get install python3.9'
                 sh 'pip install -r requirements.txt'
                 sh 'cd publish'
                 sh 'sh ./publish_local.sh'
