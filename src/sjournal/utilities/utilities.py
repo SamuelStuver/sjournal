@@ -2,14 +2,6 @@ import os
 import re
 import subprocess
 
-# def count_backups(dir):
-#     db_file_list = os.listdir(dir)
-#     count = 0
-#     for f in db_file_list:
-#         if re.search(r"notes_backup_.*", f) is not None:
-#             count += 1
-#     return count
-
 
 def get_newest_file(dir):
     try:
@@ -41,5 +33,5 @@ def range_parser(item_list):
 
 def copy_to_clipboard(txt):
     # cmd = f'printf "{txt.strip()}" | clip'
-    cmd = f'echo | set /p dummynote={txt.strip()} | clip'
+    cmd = f'echo | set /p dummynote="{txt.strip()}" | clip'
     return subprocess.check_call(cmd, shell=True)

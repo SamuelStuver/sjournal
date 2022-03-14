@@ -56,7 +56,9 @@ def validate_note(note, expected):
 
 
 def validate_config(expected):
-    config_path = os.path.join(get_project_root(), "config.json")
+    HOME_DIR = os.path.expanduser('~')
+    SJOURNAL_DIR = os.path.join(HOME_DIR, 'sjournal')
+    config_path = os.path.join(SJOURNAL_DIR, "sjournal_config.json")
 
     logger.info(f"Verify that the correct values are used in config: {config_path}")
     logger.debug(f"expected: {expected}")
@@ -65,8 +67,3 @@ def validate_config(expected):
         logger.debug(f"config: {config}")
     for param in expected.keys():
         assert config[param] == expected[param]
-
-
-# if __name__ == "__main__":
-#     # backup_file(r"C:\Users\samue\Projects\sjournal\config.json")
-#     # delete_file(r"C:\Users\samue\Projects\sjournal\config_backup.json")

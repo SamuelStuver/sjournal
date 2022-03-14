@@ -1,21 +1,30 @@
+# Standard Library
 import json
 import re
 import os
 import shutil
-import PySimpleGUI as sg
 from datetime import datetime
-import sqlite3
-from sqlite3 import Error
+from sqlite3 import Error, connect
+
+# External Libraries
+import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
-from utils import get_newest_file, range_parser, copy_to_clipboard
-from arguments import parse_args
+
+# Internal modules
+from .utilities.utilities import get_newest_file, range_parser, copy_to_clipboard
+from .utilities.arguments import parse_args
+
+# Version
+from .utilities.version import __version__
+
 
 class SJournal:
     def __init__(self, args):
         self.root_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config_file = os.path.join(self.root_dir, "config.json")
+        self.user_home_dir = os.path.expanduser('~')
+        self.config_file = os.path.join(self.user_home_dir, "sjournal", "sjournal_config.json")
         self.db_file = ""
         self.journal_dir = ""
         self.journal_name = ""
@@ -45,7 +54,7 @@ class SJournal:
 
     def create_connection(self):
         try:
-            conn = sqlite3.connect(self.db_file)
+            conn = connect(self.db_file)
             self.connection = conn
         except Error:
             self.console.print(Error)
@@ -65,7 +74,12 @@ class SJournal:
 
         if self.args.debug:
             self.console.print(self.args)
-            debug_file = os.path.join(self.root_dir, "reports", "debug.log")
+            debug_file = os.path.join(self.user_home_dir, "sjournal", "reports", "debug.log")
+
+            # Make the reports directory in ~/sjournal/ if it does not exist
+            if not os.path.isdir(os.path.dirname(debug_file)):
+                os.makedirs(os.path.dirname(debug_file))
+            self.console.print(f"debug output at {debug_file}")
             with open(debug_file, "wt") as debug_log:
                 self.console = Console(file=debug_log, width=100)
                 if action:
@@ -145,6 +159,8 @@ class SJournal:
         note_content = ' '.join(self.args.content)
         if self.args.style:
             note_content = f"[{self.args.style}]{note_content}[/]"
+        else:
+            note_content = note_content
 
         note_data = {"category": self.args.category, "content": note_content}
         cursor = self.connection.cursor()
@@ -287,7 +303,7 @@ class SJournal:
         self.show_print_table()
 
     def backup(self):
-        backup_dir = os.path.join(self.root_dir, self.journal_dir, "backups", self.journal_name)
+        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
 
         if not os.path.exists(backup_dir):
             os.makedirs(backup_dir)
@@ -303,7 +319,7 @@ class SJournal:
         shutil.copy(self.db_file, new_filename)
 
     def restore(self):
-        backup_dir = os.path.join(self.root_dir, self.journal_dir, "backups", self.journal_name)
+        backup_dir = os.path.join(self.journal_dir, "backups", self.journal_name)
 
         if self.args.filename is None:
             filename = get_newest_file(backup_dir)
@@ -319,18 +335,27 @@ class SJournal:
             self.console.print(f"Failed to restore backup: file not found.")
 
     def load(self):
-        if not os.path.isfile(os.path.join(self.root_dir, "config.json")):
-            self.console.print(f"No config file found. Creating new one at {os.path.join(self.root_dir, 'config.json')}")
+
+        # Create sjournal directory in user home directory if it does not exist
+        sjournal_dir = os.path.join(self.user_home_dir, "sjournal")
+        if not os.path.isdir(sjournal_dir):
+            os.makedirs(sjournal_dir)
+
+        # Create default config file if it does not exist
+        if not os.path.isfile(self.config_file):
+            self.console.print(f"No config file found. Creating new one at {self.config_file}")
+
             config = {
-                "journal_dir": "journals",
+                "journal_dir": os.path.join(self.user_home_dir, "sjournal", "journals"),
                 "journal_name": "notes"
             }
+
             confstring = json.dumps(config)
             with open(self.config_file, "w") as config_file:
                 config_file.write(confstring)
 
+        # Modify the config file to use the specified journal name if given
         if hasattr(self.args, 'journal_name'):
-            # configure the json file to use the new name
             with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
 
@@ -339,17 +364,24 @@ class SJournal:
             with open(self.config_file, "w") as config_file:
                 config_file.write(confstring)
 
-            msg = f'Set journal to {os.path.join(self.root_dir, config["journal_dir"], config["journal_name"])}.db'
+            msg = f'Set journal to {os.path.join(config["journal_dir"], config["journal_name"])}.db'
             self.console.print(msg)
 
-        else:
-            # Use the file specified in the config file
+            # Load the new config
             with open(self.config_file, "r") as config_file:
                 config = json.load(config_file)
 
-        if not os.path.exists(os.path.join(self.root_dir, config["journal_dir"])):
-            os.makedirs(os.path.join(self.root_dir, config["journal_dir"]))
-        self.db_file = os.path.join(self.root_dir, config["journal_dir"], f"{config['journal_name']}.db")
+        # If journal name is not given, use the file specified in the config file
+        else:
+            with open(self.config_file, "r") as config_file:
+                config = json.load(config_file)
+
+        # If the journal directory does not exist, create it
+        if not os.path.exists(os.path.join(config["journal_dir"])):
+            os.makedirs(os.path.join(config["journal_dir"]))
+
+        # Set the db_file, journal_dir, and journal_name attributes for the journal object
+        self.db_file = os.path.join(config["journal_dir"], f"{config['journal_name']}.db")
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
 
@@ -415,7 +447,11 @@ class Note:
                self.timestamp == other.timestamp
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
-    journal = SJournal(args)
-    journal.run()
+
+    if args.version:
+        print(__version__)
+    else:
+        journal = SJournal(args)
+        journal.run()

@@ -3,3 +3,4 @@ __pycache__/
 journals/
 reports/
 config.json
+sjournal_config.json
