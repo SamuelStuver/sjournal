@@ -18,7 +18,7 @@ def environment(request):
     if env == "local_repo":
         sjournal_exec = f"python {os.path.join(ROOT_DIR, 'run.py')}"
     elif env == "jenkins_repo":
-        sjournal_exec = f"docker exec python {os.path.join(ROOT_DIR, 'run.py')}"
+        sjournal_exec = f"python {os.path.join(ROOT_DIR, 'run.py')}"
     elif env == "local_publish" or env == "remote_publish":
         sjournal_exec = "sjournal"
     else:
