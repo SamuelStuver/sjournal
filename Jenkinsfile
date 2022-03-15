@@ -24,11 +24,13 @@ pipeline {
         always {
             // Compile reports
             //DOCKER_ID=${docker ps --latest --quiet}
-            DOCKER_ID = sh(script: 'docker ps --latest --quiet', returnStdout: true)
+            script {
+                LATEST_DOCKER_ID = "(docker ps --latest --quiet)"
+            }
             sh "mkdir -p reports"
-            sh "docker cp ${DOCKER_ID}:app/reports/report.html ./reports"
-            sh "docker cp ${DOCKER_ID}:app/reports/report.xml ./reports"
-            //sh "docker cp ${DOCKER_ID}:app/reports/test_log.log ./reports"
+            sh "docker cp ${LATEST_DOCKER_ID}:app/reports/report.html ./reports"
+            sh "docker cp ${LATEST_DOCKER_ID}:app/reports/report.xml ./reports"
+            //sh "docker cp ${LATEST_DOCKER_ID}:app/reports/test_log.log ./reports"
             sh "pwd"
             sh "ls"
             // Remove all exited containers
