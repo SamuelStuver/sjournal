@@ -9,16 +9,11 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                // sh "sudo apt-get install tk -y"
                 sh "docker build -t sjournal-docker ."
-                sh "echo BUILT DOCKER IMAGE"
-                sh "ls"
-                sh "docker images"
             }
         }
         stage('Test') {
             steps {
-                //sh 'docker run -e DISPLAY=host.docker.internal:0 sjournal-docker'
                 sh 'docker run sjournal-docker'
             }
         }
