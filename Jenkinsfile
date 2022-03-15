@@ -1,24 +1,38 @@
 pipeline {
-    agent any
+    agent {
+        label 'docker'
+    }
+    environment {
+    DOCKER_BUILDKIT=1
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
     stages {
         stage('Build') {
             steps {
-                sh 'sudo apt-get install python3.9'
-                sh 'pip install -r requirements.txt'
-                sh 'cd publish'
-                sh 'sh ./publish_local.sh'
+                sh "docker build . -t sjournal_docker"
             }
         }
         stage('Test') {
             steps {
-                sh 'pwd'
+                sh 'docker run -d sjournal_docker'
             }
         }
-        stage('Cleanup') {
+        stage('Compile Reports') {
             steps {
                 sh 'pip uninstall -r requirements.txt -y'
                 sh 'pip uninstall sjournal'
             }
         }
+        post {
+        always {
+            script {
+                sh "docker stop sjournal_docker"
+                sh "docker cp sjournal_docker:app ./logs"
+            }
+            deleteDir()
+        }
+    }
     }
 }
