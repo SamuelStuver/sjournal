@@ -34,7 +34,7 @@ pipeline {
         always {
             sh "ls"
             sh "ls reports"
-            sh "echo running junit"
+            sh "echo RUNNING JUNIT"
             withChecks('Integration Tests') {
                 junit 'reports/report.xml'
             }
