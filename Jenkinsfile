@@ -34,7 +34,7 @@ pipeline {
         always {
             sh "ls"
             sh "ls reports"
-            junit './reports/report.xml'
+            junit 'reports/report.xml'
 
             // Remove all exited containers
             sh "docker ps -a -q -f status=exited | xargs docker rm"
