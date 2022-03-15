@@ -17,7 +17,7 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'docker run -d sjournal-docker'
+                sh 'docker run sjournal-docker'
             }
         }
         stage('Compile Reports') {
