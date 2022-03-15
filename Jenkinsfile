@@ -10,6 +10,8 @@ pipeline {
         stage('Build') {
             steps {
                 sh "docker build . -t sjournal_docker"
+                sh "echo BUILT DOCKER IMAGE"
+                sh "ls"
             }
         }
         stage('Test') {
@@ -19,8 +21,11 @@ pipeline {
         }
         stage('Compile Reports') {
             steps {
-                sh 'pip uninstall -r requirements.txt -y'
-                sh 'pip uninstall sjournal'
+
+                sh "docker cp sjournal_docker:app ./logs"
+
+                sh "pwd"
+                sh "ls"
             }
         }
     }
@@ -29,6 +34,8 @@ pipeline {
             script {
                 sh "docker stop sjournal_docker"
                 sh "docker cp sjournal_docker:app ./logs"
+                sh "docker stop sjournal_docker"
+                sh "docker rm sjournal_docker"
                 sh "pwd"
                 sh "ls"
             }
