@@ -209,7 +209,7 @@ def test_edit_note(fixed_notes_journal, environment):
         logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
 
         proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        result = proc.communicate(input=b'EDITED')
+        result = proc.communicate(input='EDITED')
 
         logger.debug(result)
 
