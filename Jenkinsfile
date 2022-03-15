@@ -22,10 +22,10 @@ pipeline {
         always {
             script {
                 // Compile reports
-                sh "mkdir reports"
-                sh "docker cp sjournal-docker:./reports/report.html ./reports"
-                sh "docker cp sjournal-docker:./reports/report.xml ./reports"
-                sh "docker cp sjournal-docker:./reports/test_log.log ./reports"
+                sh "mkdir -p reports"
+                sh "docker cp ${docker ps --latest --quiet}:app/reports/report.html ./reports"
+                sh "docker cp ${docker ps --latest --quiet}:app/reports/report.xml ./reports"
+                //sh "docker cp ${docker ps --latest --quiet}:app/reports/test_log.log ./reports"
                 sh "pwd"
                 sh "ls"
                 // Remove all exited containers
