@@ -1,7 +1,5 @@
 pipeline {
-    agent {
-        label 'docker'
-    }
+    agent any
     environment {
     DOCKER_BUILDKIT=1
     }
