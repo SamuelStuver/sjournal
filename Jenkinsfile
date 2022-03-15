@@ -17,23 +17,20 @@ pipeline {
                 sh 'docker run sjournal-docker'
             }
         }
-        stage('Compile Reports') {
-            steps {
+    }
+    post {
+        always {
+            script {
+                // Compile reports
                 sh "mkdir reports"
                 sh "docker cp sjournal-docker:./reports/report.html ./reports"
                 sh "docker cp sjournal-docker:./reports/report.xml ./reports"
                 sh "docker cp sjournal-docker:./reports/test_log.log ./reports"
                 sh "pwd"
                 sh "ls"
-            }
-        }
-    }
-    post {
-        always {
-            script {
+                // Remove all exited containers
                 sh "docker ps -a -q -f status=exited | xargs docker rm"
             }
-            deleteDir()
         }
         failure {
             sh "echo Reached Failure Step"
