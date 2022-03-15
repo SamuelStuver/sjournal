@@ -32,7 +32,8 @@ pipeline {
     }
     post {
         always {
-
+            sh "ls"
+            sh "ls reports"
             junit './reports/report.xml'
 
             // Remove all exited containers
