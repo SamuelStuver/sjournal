@@ -9,6 +9,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
+                // sh "sudo apt-get install tk -y"
                 sh "docker build -t sjournal-docker ."
                 sh "echo BUILT DOCKER IMAGE"
                 sh "ls"
@@ -17,7 +18,7 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'docker run sjournal-docker'
+                sh 'docker run -e DISPLAY=host.docker.internal:0 sjournal-docker'
             }
         }
         stage('Compile Reports') {
@@ -34,12 +35,7 @@ pipeline {
     post {
         always {
             script {
-                sh "docker stop sjournal-docker"
-                sh "docker cp sjournal-docker:app ./logs"
-                sh "docker stop sjournal_docker"
-                sh "docker rm sjournal_docker"
-                sh "pwd"
-                sh "ls"
+                sh "docker ps -a -q -f status=exited | xargs docker rm"
             }
             deleteDir()
         }
