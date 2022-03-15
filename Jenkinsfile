@@ -26,7 +26,7 @@ pipeline {
                 sh "mkdir -p reports"
                 sh "docker cp $LATEST_DOCKER_ID:app/reports/report.html ./reports"
                 sh "docker cp $LATEST_DOCKER_ID:app/reports/report.xml ./reports"
-                //sh "docker cp $LATEST_DOCKER_ID:app/reports/test_log.log ./reports"
+                sh "docker cp $LATEST_DOCKER_ID:app/reports/test_log.log ./reports"
             }
         }
     }
