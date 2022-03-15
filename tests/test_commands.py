@@ -208,7 +208,7 @@ def test_edit_note(fixed_notes_journal, environment):
         logger.info(f"EDIT NOTE {note.id}")
         logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
 
-        proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
@@ -309,7 +309,7 @@ def test_list_default(random_journal, environment, command):
     logger.debug(full_text)
 
     # Search output text for table headers
-    header = rf"ID\s+\|\s+Timestamp\s+\|\s+Category\s+\|\s+Content\s+"
+    header = rf".*ID.*Timestamp.*Category.*Content.*"
     match = re.search(header, full_text)
     assert match, f"Could not find header in debug output"
     logger.debug(match.group(0))
