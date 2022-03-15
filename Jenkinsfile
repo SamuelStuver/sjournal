@@ -25,16 +25,19 @@ pipeline {
                 sh 'pip uninstall sjournal'
             }
         }
-        post {
-            always {
-                script {
-                    sh "docker stop sjournal_docker"
-                    sh "docker cp sjournal_docker:app ./logs"
-                    sh "pwd"
-                    sh "ls"
-                }
-                deleteDir()
+    }
+    post {
+        always {
+            script {
+                sh "docker stop sjournal_docker"
+                sh "docker cp sjournal_docker:app ./logs"
+                sh "pwd"
+                sh "ls"
             }
+            deleteDir()
+        }
+        failure {
+            sh "echo Reached Failure Step"
         }
     }
 }
