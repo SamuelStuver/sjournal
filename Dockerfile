@@ -13,4 +13,4 @@ RUN pip install -r developer_requirements.txt
 
 COPY . .
 
-CMD [ "python", "-m" , "pytest"]
+CMD [ "python", "-m" , "pytest", "--test_environment", "jenkins_repo"]

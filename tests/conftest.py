@@ -4,7 +4,7 @@ from utils_test import get_project_root
 
 
 def pytest_addoption(parser):
-    parser.addoption("--test_environment", action="store", default="local_repo", choices=["local_repo", "local_publish", "remote_publish"])
+    parser.addoption("--test_environment", action="store", default="local_repo", choices=["local_repo", "jenkins_repo", "local_publish", "remote_publish"])
 
 
 @pytest.fixture(scope='session')
@@ -17,6 +17,8 @@ def environment(request):
     env = request.config.option.test_environment
     if env == "local_repo":
         sjournal_exec = f"python {os.path.join(ROOT_DIR, 'run.py')}"
+    elif env == "jenkins_repo":
+        sjournal_exec = f"docker exec python {os.path.join(ROOT_DIR, 'run.py')}"
     elif env == "local_publish" or env == "remote_publish":
         sjournal_exec = "sjournal"
     else:
