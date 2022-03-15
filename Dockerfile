@@ -2,6 +2,9 @@ FROM python:3.8-slim-buster
 
 WORKDIR /app
 
+RUN pwd
+RUN ls
+
 COPY requirements.txt requirements.txt
 COPY developer_requirements.txt developer_requirements.txt
 RUN python -m pip install --upgrade pip

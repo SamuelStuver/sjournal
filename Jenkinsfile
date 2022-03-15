@@ -26,13 +26,15 @@ pipeline {
             }
         }
         post {
-        always {
-            script {
-                sh "docker stop sjournal_docker"
-                sh "docker cp sjournal_docker:app ./logs"
+            always {
+                script {
+                    sh "docker stop sjournal_docker"
+                    sh "docker cp sjournal_docker:app ./logs"
+                    sh "pwd"
+                    sh "ls"
+                }
+                deleteDir()
             }
-            deleteDir()
         }
-    }
     }
 }
