@@ -18,7 +18,8 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh 'docker run -e DISPLAY=host.docker.internal:0 sjournal-docker'
+                //sh 'docker run -e DISPLAY=host.docker.internal:0 sjournal-docker'
+                sh 'docker run sjournal-docker'
             }
         }
         stage('Compile Reports') {
