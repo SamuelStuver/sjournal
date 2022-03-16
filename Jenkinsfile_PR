@@ -9,13 +9,13 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh "docker build -t sjournal-docker ."
+                sh "docker build -t sjournal-docker --build-arg TEST_ENV= local_publish ."
             }
         }
         stage('Test') {
             steps {
                 // Run Tests
-                sh 'docker run sjournal-docker python -m pytest --test_environment local_publish'
+                sh 'docker run sjournal-docker'
 
                 // Compile reports
                 script {
