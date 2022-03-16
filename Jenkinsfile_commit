@@ -15,7 +15,8 @@ pipeline {
         stage('Test') {
             steps {
                 // Run Tests
-                sh 'docker run -d sjournal-docker python -m pytest --test_environment=local_repo'
+                // sh 'mkdir -p reports'
+                sh 'docker run -v reports:/app/reports sjournal-docker python -m pytest --test_environment=local_repo'
 
                 // Compile reports
                 script {
