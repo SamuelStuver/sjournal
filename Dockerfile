@@ -20,4 +20,4 @@ RUN if [ "$TEST_ENV" = "remote_publish" ] ; then pip install -r developer_requir
 RUN if [ "$TEST_ENV" = "remote_publish" ] ; then pip install sjournal ; else echo "NOT REMOTE PUBLISH" ; fi
 
 
-ENTRYPOINT [ "python", "-m" , "pytest"]
+CMD [ "python", "-m" , "pytest"]

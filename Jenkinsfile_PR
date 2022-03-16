@@ -15,7 +15,7 @@ pipeline {
         stage('Test') {
             steps {
                 // Run Tests
-                sh 'docker run sjournal-docker --test_environment=local_publish'
+                sh 'docker run sjournal-docker python -m pytest --test_environment=local_publish'
 
                 // Compile reports
                 script {
