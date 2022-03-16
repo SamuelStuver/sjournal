@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh "docker build -t sjournal-docker --build-arg TEST_ENV= local_publish ."
+                sh "docker build -t sjournal-docker --build-arg TEST_ENV=local_publish ."
             }
         }
         stage('Test') {
