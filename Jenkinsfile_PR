@@ -16,7 +16,10 @@ pipeline {
             steps {
                 // Run Tests
                 sh 'docker run sjournal-docker --test_environment=local_publish'
-
+            }
+        }
+        stage('Compile Reports') {
+            steps {
                 // Compile reports
                 script {
                     env.LATEST_DOCKER_ID = sh(script:'docker ps --latest --quiet', returnStdout: true).trim()
