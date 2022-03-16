@@ -15,7 +15,7 @@ pipeline {
         stage('Test') {
             steps {
                 // Run Tests
-                sh 'docker run sjournal-docker'
+                sh 'docker run sjournal-docker --test_environment=local_repo'
 
                 // Compile reports
                 script {
