@@ -42,7 +42,7 @@ pipeline {
             sh "docker ps -a -q -f status=exited | xargs docker rm"
         }
         failure {
-            sh "echo Reached Failure Step"
+            sh "echo Do something on Failure"
         }
     }
 }
