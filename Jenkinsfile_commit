@@ -28,7 +28,8 @@ pipeline {
             junit 'reports/report.xml'
 
             // Remove all exited containers and volumes
-            sh "docker ps -a -q -f status=exited | xargs docker rm -v"
+            // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
+            docker system prune --force -a --volumes
         }
         failure {
             sh "echo Do something on Failure"
