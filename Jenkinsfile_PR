@@ -16,10 +16,7 @@ pipeline {
             steps {
                 // Run Tests
                 sh 'docker run sjournal-docker --test_environment=local_publish'
-            }
-        }
-        stage('Compile Reports') {
-            steps {
+
                 // Compile reports
                 script {
                     env.LATEST_DOCKER_ID = sh(script:'docker ps --latest --quiet', returnStdout: true).trim()
@@ -30,6 +27,9 @@ pipeline {
                 sh "docker cp $LATEST_DOCKER_ID:app/reports/report.html ./reports"
                 sh "docker cp $LATEST_DOCKER_ID:app/reports/report.xml ./reports"
                 sh "docker cp $LATEST_DOCKER_ID:app/reports/test_log.log ./reports"
+
+                sh "ls"
+                sh "ls reports"
             }
         }
     }
