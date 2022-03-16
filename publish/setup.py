@@ -8,7 +8,7 @@ from version_utils import bump_version, copy_version_to_package, current_version
 # Fill in this information for each package.
 # ======================================================================================================================
 
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "build_config.json"
 
 # Load Config.
 with open(CONFIG_FILE, "r") as config_file:

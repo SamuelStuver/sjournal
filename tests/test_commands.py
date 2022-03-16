@@ -137,7 +137,7 @@ def test_load(clean_journal, environment):
     # Load a new journal
     logger.info("Load a new journal named 'delete_this_journal'")
     commandline = f'{sjournal_exec} load delete_this_journal'
-    result = subprocess.run(commandline, capture_output=True)
+    result = subprocess.run(commandline, shell=True, capture_output=True)
     logger.debug(f"stdout: {result.stdout}")
     assert result.returncode == 0
 
@@ -178,7 +178,7 @@ def test_add_note(clean_journal, environment, command, expected):
         commandline = f"{sjournal_exec} " + command
 
         logger.debug(f"commandline: {commandline}")
-        result = subprocess.run(commandline, capture_output=False)
+        result = subprocess.run(commandline, shell=True, capture_output=False)
         assert result.returncode == 0
 
         # Journal should have one more note
@@ -209,6 +209,7 @@ def test_edit_note(fixed_notes_journal, environment):
         logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
 
         proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        logger.info(proc.communicate())
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
@@ -238,7 +239,7 @@ def test_delete_note(fixed_notes_journal, environment):
 
         # Execute Command
         commandline = f'{sjournal_exec} delete {note.id}'
-        result = subprocess.run(commandline, capture_output=True)
+        result = subprocess.run(commandline, shell=True, capture_output=True)
 
         logger.debug(f"stdout: {result.stdout}")
 
@@ -298,7 +299,7 @@ def test_list_default(random_journal, environment, command):
     logger.debug(f"commandline: {commandline}")
     logger.debug(f"For this command, expect {n_printed} notes")
 
-    result = subprocess.run(commandline, capture_output=False)
+    result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
     assert result.returncode == 0
 
@@ -309,7 +310,7 @@ def test_list_default(random_journal, environment, command):
     logger.debug(full_text)
 
     # Search output text for table headers
-    header = rf"ID\s+\|\s+Timestamp\s+\|\s+Category\s+\|\s+Content\s+"
+    header = rf".*ID.*Timestamp.*Category.*Content.*"
     match = re.search(header, full_text)
     assert match, f"Could not find header in debug output"
     logger.debug(match.group(0))
@@ -340,7 +341,7 @@ def test_categories(random_journal, environment, command):
         expected_categories = [expected_categories[0]]
 
     logger.debug(commandline)
-    result = subprocess.run(commandline, capture_output=False)
+    result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
     assert result.returncode == 0
 
@@ -377,7 +378,7 @@ def test_backup(random_journal, environment, command):
         expected_backup_filename = "backup_automated_test"
 
     logger.debug(commandline)
-    result = subprocess.run(commandline, capture_output=False)
+    result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
     assert result.returncode == 0
 
@@ -462,7 +463,7 @@ def test_restore(random_journal, environment, command, action):
     # Restore the journal
     commandline = f"{sjournal_exec} " + command
     logger.debug(commandline)
-    result = subprocess.run(commandline, capture_output=False)
+    result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
     assert result.returncode == 0
 
@@ -481,7 +482,7 @@ def test_erase(random_journal, environment):
     # Erase the notebook via the command line
     commandline = f"{sjournal_exec} --debug erase"
     logger.debug(commandline)
-    result = subprocess.run(commandline, capture_output=False)
+    result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
     assert result.returncode == 0
     assert journal.length == 0
@@ -506,7 +507,7 @@ def test_search(fixed_notes_journal, environment, command):
         for i, note in enumerate(notes):
             # send command
             commandline = f"{sjournal_exec} --debug {command} {i}"
-            result = subprocess.run(commandline, capture_output=False)
+            result = subprocess.run(commandline, shell=True, capture_output=False)
             logger.debug(result)
             assert result.returncode == 0
 
@@ -524,7 +525,7 @@ def test_search(fixed_notes_journal, environment, command):
 
     else:
         # send command
-        result = subprocess.run(commandline, capture_output=False)
+        result = subprocess.run(commandline, shell=True, capture_output=False)
         logger.debug(result)
         assert result.returncode == 0
 
