@@ -205,9 +205,15 @@ def test_edit_note(fixed_notes_journal, environment):
 
         # Execute Command with subsequent input
         logger.info(f"EDIT NOTE {note.id}")
-        logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
+        try:
+            # depending on environment, sjournal_exec might only be one item instead of 2. sjournal vs python run.py
+            process_args = [sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()]
+        except IndexError:
+            process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
 
-        proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        logger.info(process_args)
+
+        proc = subprocess.Popen(process_args, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         result = proc.communicate(input=b'EDITED')
 
         logger.debug(result)
