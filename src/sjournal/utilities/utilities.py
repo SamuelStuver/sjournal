@@ -1,6 +1,5 @@
 import os
 import re
-import pyperclip
 
 
 def get_newest_file(dir):
