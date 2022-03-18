@@ -4,3 +4,4 @@ journals/
 reports/
 config.json
 sjournal_config.json
+Pipfile*
