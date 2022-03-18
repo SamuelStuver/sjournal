@@ -4,16 +4,17 @@ import re
 import os
 import shutil
 from datetime import datetime
-from sqlite3 import Error, connect
+from sqlite3 import Error, connect, ProgrammingError
 
 # External Libraries
 import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
+import pyperclip
 
 # Internal modules
-from .utilities.utilities import get_newest_file, range_parser, copy_to_clipboard
+from .utilities.utilities import get_newest_file, range_parser
 from .utilities.arguments import parse_args
 
 # Version
@@ -63,6 +64,13 @@ class SJournal:
     def close_connection(self):
         self.connection.close()
 
+    def new_cursor(self):
+        try:
+            return self.connection.cursor()
+        except ProgrammingError:
+            self.create_connection()
+            return self.connection.cursor()
+
     def run(self):
 
         self.create_connection()
@@ -80,6 +88,7 @@ class SJournal:
             if not os.path.isdir(os.path.dirname(debug_file)):
                 os.makedirs(os.path.dirname(debug_file))
             self.console.print(f"debug output at {debug_file}")
+
             with open(debug_file, "wt") as debug_log:
                 self.console = Console(file=debug_log, width=100)
                 if action:
@@ -87,10 +96,11 @@ class SJournal:
         else:
             if action:
                 action()
+
         self.close_connection()
 
     def table_exists(self, table_name):
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
         # if the count is 1, then table exists
         if cursor.fetchone()[0] == 1:
@@ -99,13 +109,13 @@ class SJournal:
             return False
 
     def create_table(self, name, table_string):
-        cursor = self.connection.cursor()
         query = f"CREATE TABLE {name}({table_string})"
+        cursor = self.new_cursor()
         cursor.execute(query)
         self.connection.commit()
 
     def insert_into_database_table(self, table_name, note):
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)", note.dict)
         self.connection.commit()
 
@@ -147,6 +157,7 @@ class SJournal:
             return None
 
     def add(self):
+        cursor = self.new_cursor()
 
         if len(self.args.content) == 0:
             values = self.add_gui()
@@ -163,12 +174,14 @@ class SJournal:
             note_content = note_content
 
         note_data = {"category": self.args.category, "content": note_content}
-        cursor = self.connection.cursor()
+
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
+
         try:
             most_recent_id = cursor.fetchone()[0]
         except TypeError:
             most_recent_id = -1
+
         note = Note(most_recent_id+1, note_data["category"], note_data["content"])
         self.insert_into_database_table("notes", note)
         self.connection.commit()
@@ -180,7 +193,9 @@ class SJournal:
         self.console.print(self.table)
 
     def edit(self):
-        cursor = self.connection.cursor()
+
+        cursor = self.new_cursor()
+
         if self.args.id is not None:
             id_to_edit = self.args.id
         else:
@@ -190,8 +205,12 @@ class SJournal:
         cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
         old_category, old_content, old_timestamp = cursor.fetchone()
 
-        copy_to_clipboard(old_content)
-        self.console.print(f'Editing Note #{id_to_edit} [bold cyan](copied to clipboard with style markup)[/]: "{old_content}"')
+        try:
+            pyperclip.copy(old_content)
+            msg = "(copied to clipboard)"
+        except pyperclip.PyperclipException:
+            msg = "(copy manually)"
+        self.console.print(f'Editing Note #{id_to_edit} [bold cyan]{msg}[/]: "{old_content}"')
 
         new_content = Prompt.ask("Enter new note text", default=old_content)
 
@@ -202,7 +221,7 @@ class SJournal:
         self.connection.commit()
 
     def list(self):
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
 
         query = "SELECT * FROM notes"
         if hasattr(self.args, 'category') and self.args.category is not None:
@@ -233,7 +252,7 @@ class SJournal:
         else:
             regex = ".*"
 
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         query = f"Select distinct category from notes ORDER BY category ASC"
 
         if hasattr(self.args, "quantity") and not self.args.all:
@@ -247,11 +266,12 @@ class SJournal:
 
     def delete(self):
         ids_to_delete = range_parser(self.args.delete_criteria)
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         for id in ids_to_delete:
             if isinstance(id, int):
-                self.console.print(f"DELETING NOTE #{id}")
+
                 cursor.execute(f'DELETE FROM notes WHERE id={id}')
+                self.console.print(f"DELETED NOTE #{id}")
             else:
                 regex_below = r"\W(\d*)"
                 regex_above = r"(\d*)\W"
@@ -259,19 +279,23 @@ class SJournal:
                 match_above = re.search(regex_above, id)
 
                 if match_below and match_below.group(1).isnumeric():
+
                     for i in range(0, int(match_below.group(1))+1):
-                        self.console.print(f"DELETING NOTE #{i}")
                         cursor.execute(f'DELETE FROM notes WHERE id={i}')
+                        self.console.print(f"DELETED NOTE #{i}")
+
                 elif match_above and match_above.group(1).isnumeric():
                     cursor.execute('SELECT max(id) FROM notes')
                     max_id = cursor.fetchone()[0]
+
                     for i in range(int(match_above.group(1)), max_id+1):
-                        self.console.print(f"DELETING NOTE #{i}")
                         cursor.execute(f'DELETE FROM notes WHERE id={i}')
+                        self.console.print(f"DELETED NOTE #{i}")
+
         self.connection.commit()
 
     def erase(self):
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         cursor.execute('DELETE FROM notes')
         self.connection.commit()
 
@@ -281,7 +305,7 @@ class SJournal:
         else:
             regex = ".*"
 
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         query = "SELECT * FROM notes"
         if hasattr(self.args, 'category') and self.args.category is not None:
             query += f" WHERE category='{self.args.category}'"
@@ -397,9 +421,8 @@ class SJournal:
         return len(self.notes)
 
     def _get_notes(self):
-        self.create_connection()
         query = "SELECT * FROM notes"
-        cursor = self.connection.cursor()
+        cursor = self.new_cursor()
         cursor.execute(query)
         items = cursor.fetchall()
         notes = []

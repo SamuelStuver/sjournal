@@ -6,6 +6,7 @@ import random
 import re
 import json
 import shutil
+from platform import system
 from src.sjournal import SJournal
 from utils_test import backup_file, delete_file, \
     get_project_root, \
@@ -196,7 +197,6 @@ def test_edit_note(fixed_notes_journal, environment):
     for e in environment:
         logger.info(f"{e=}")
 
-
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
     notes = journal.notes
@@ -206,16 +206,25 @@ def test_edit_note(fixed_notes_journal, environment):
 
         # Execute Command with subsequent input
         logger.info(f"EDIT NOTE {note.id}")
-        logger.info([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()])
+        try:
+            # depending on environment, sjournal_exec might only be one item instead of 2. sjournal vs python run.py
+            process_args = [sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()]
+        except IndexError:
+            process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
 
-        proc = subprocess.Popen([sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        logger.info(proc.communicate())
+        if system() == 'Linux':
+            process_args = [sjournal_exec + ' edit ' + f'{note.id}'.strip()]
+
+        logger.info(process_args)
+
+        proc = subprocess.Popen(process_args, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         result = proc.communicate(input=b'EDITED')
 
+        logger.debug(proc)
         logger.debug(result)
 
         # Confirm successful command
-        assert proc.returncode == 0
+        assert proc.returncode == 0, proc
 
         # Confirm that the note at note_id has been edited successfully
         expected = {"category": note.category, "content": f"EDITED", "id": note.id}
