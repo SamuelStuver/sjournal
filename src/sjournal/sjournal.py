@@ -205,8 +205,12 @@ class SJournal:
         cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
         old_category, old_content, old_timestamp = cursor.fetchone()
 
-        pyperclip.copy(old_content)
-        self.console.print(f'Editing Note #{id_to_edit} [bold cyan](copied to clipboard with style markup)[/]: "{old_content}"')
+        try:
+            pyperclip.copy(old_content)
+            msg = "(copied to clipboard)"
+        except pyperclip.PyperclipException:
+            msg = "(copy manually)"
+        self.console.print(f'Editing Note #{id_to_edit} [bold cyan]{msg}[/]: "{old_content}"')
 
         new_content = Prompt.ask("Enter new note text", default=old_content)
 
