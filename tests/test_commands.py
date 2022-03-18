@@ -213,7 +213,7 @@ def test_edit_note(fixed_notes_journal, environment):
             process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
 
         if system() == 'Linux':
-            process_args = [sjournal_exec + ' edit' + f' {note.id}'.strip()]
+            process_args = [sjournal_exec + ' edit ' + f'{note.id}'.strip()]
 
         logger.info(process_args)
 
