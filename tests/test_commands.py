@@ -196,7 +196,6 @@ def test_edit_note(fixed_notes_journal, environment):
     for e in environment:
         logger.info(f"{e=}")
 
-
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
     notes = journal.notes
