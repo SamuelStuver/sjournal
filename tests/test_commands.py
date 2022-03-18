@@ -216,10 +216,11 @@ def test_edit_note(fixed_notes_journal, environment):
         proc = subprocess.Popen(process_args, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         result = proc.communicate(input=b'EDITED')
 
+        logger.debug(proc)
         logger.debug(result)
 
         # Confirm successful command
-        assert proc.returncode == 0, dir(proc)
+        assert proc.returncode == 0, proc
 
         # Confirm that the note at note_id has been edited successfully
         expected = {"category": note.category, "content": f"EDITED", "id": note.id}
