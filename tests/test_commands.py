@@ -6,6 +6,7 @@ import random
 import re
 import json
 import shutil
+from platform import system
 from src.sjournal import SJournal
 from utils_test import backup_file, delete_file, \
     get_project_root, \
@@ -210,6 +211,9 @@ def test_edit_note(fixed_notes_journal, environment):
             process_args = [sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()]
         except IndexError:
             process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
+
+        if system() == 'Linux':
+            process_args = [sjournal_exec + ' edit' + f' {note.id}'.strip()]
 
         logger.info(process_args)
 
