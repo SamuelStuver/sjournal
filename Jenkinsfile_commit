@@ -26,6 +26,12 @@ pipeline {
             sh "ls reports"
             sh "echo RUNNING JUNIT PLUGIN"
             junit 'reports/report.xml'
+            publishHTML (target : [allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: false,
+                        reportDir: 'reports',
+                        reportFiles: 'report.html',
+                        reportName: 'Pytest Report'])
 
             // Remove all exited containers and volumes
             // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
