@@ -1,6 +1,6 @@
 import os
 import re
-import subprocess
+import pyperclip
 
 
 def get_newest_file(dir):
@@ -29,9 +29,3 @@ def range_parser(item_list):
                 else:
                     new_list.append(item)
     return new_list
-
-
-def copy_to_clipboard(txt):
-    # cmd = f'printf "{txt.strip()}" | clip'
-    cmd = f'echo | set /p dummynote="{txt.strip()}" | clip'
-    return subprocess.check_call(cmd, shell=True)

@@ -11,9 +11,10 @@ import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
 from rich.prompt import Prompt
+import pyperclip
 
 # Internal modules
-from .utilities.utilities import get_newest_file, range_parser, copy_to_clipboard
+from .utilities.utilities import get_newest_file, range_parser
 from .utilities.arguments import parse_args
 
 # Version
@@ -190,7 +191,7 @@ class SJournal:
         cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
         old_category, old_content, old_timestamp = cursor.fetchone()
 
-        copy_to_clipboard(old_content)
+        pyperclip.copy(old_content)
         self.console.print(f'Editing Note #{id_to_edit} [bold cyan](copied to clipboard with style markup)[/]: "{old_content}"')
 
         new_content = Prompt.ask("Enter new note text", default=old_content)
