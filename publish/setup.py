@@ -2,7 +2,7 @@
 import os
 import setuptools
 import json
-from version_utils import bump_version, copy_version_to_package, current_version
+from version_utils import parse_arguments, handle_version, copy_version_to_package, get_current_version, get_git_branch
 
 # ======================================================================================================================
 # Fill in this information for each package.
@@ -61,9 +61,9 @@ if PACKAGE_NAME_OVERRIDE is None:
 # Automatic Package Setup Script.
 # ======================================================================================================================
 
-# Bump and copy the version.
-version = current_version(CONFIG_FILE)
-copy_version_to_package(PACKAGE_PATH, version)
+
+final_version = get_current_version()
+copy_version_to_package(PACKAGE_PATH, str(final_version))
 
 # Copy the README into the long description.
 with open("../README.md", "r") as f:
@@ -88,7 +88,7 @@ setuptools.setup(
     description=DESCRIPTION,
     long_description=long_description,
     long_description_content_type="text/markdown",
-    version=version,
+    version=str(final_version),
     url=REPO,
     packages=packages,
     package_dir={PACKAGE_NAME: PACKAGE_PATH},

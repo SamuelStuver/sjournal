@@ -1,38 +1,99 @@
 import json
 import os
+import sys
+import semver
+import subprocess
+import argparse
+from rich.prompt import Confirm
 
 
-def current_version(config_file: str) -> str:
-    # Open the file and read the version.
-    with open(config_file, "r") as f:
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--increment', action='store', default=None, choices=["major", "minor", "patch", "prerelease", None],
+                        help="Increment the major, minor, patch, or prerelease version")
+
+    parser.add_argument('-s', '--set', action='store', default=None, help="Set a specific version")
+
+    parser.add_argument('-v', '--version', action='store_true', help="Show the current version")
+    parser.add_argument('-l', '--location', action='store', default="local", choices=["local", "remote"],
+                        help="Show the current version")
+    parser.add_argument('-f', '--force', action='store_true', help="force publish without verifying version or branch")
+    return parser.parse_args()
+
+
+def get_git_branch():
+    command = "git rev-parse --abbrev-ref HEAD".split()
+    resp = subprocess.check_output(command)
+    branch_name = resp.decode("utf-8").strip()
+    return branch_name
+
+
+def get_current_version():
+    # Read version from config file
+    with open("build_config.json", "r") as f:
         config_object = json.load(f)
-        current_version = config_object["version"]
+        version = semver.VersionInfo.parse(config_object["version"])
 
-    return current_version
+    return version
 
-# Bump the version.
-def bump_version(config_file: str) -> str:
 
-    # Open the file and read the version.
-    with open(config_file, "r") as f:
-        config_object = json.load(f)
-        current_version = config_object["version"]
-        versions = current_version.split(".")
-        versions[-1] = str(int(versions[-1]) + 1)
-        new_version = ".".join(versions)
+def check_branch():
+    current_branch = get_git_branch()
 
-    # Write the file back.
-    with open(config_file, "w") as f:
-        config_object["version"] = new_version
-        json.dump(config_object, f, indent=2)
+    if current_branch == "main":
+        return True
+    else:
+        return Confirm.ask(f"Current branch is NOT main ({current_branch}).\nAlter the version anyway?")
+
+
+def increment_version(part):
+
+    # Get the current version
+    current_version = get_current_version()
+    new_version = current_version
+
+    # Increment the version. If branch is not main, ask for confirmation first
+    if check_branch():
+        new_version = new_version.next_version(part, prerelease_token="alpha")
+
+    # Update the config file with the new version
+    with open("build_config.json", "r") as confile:
+        config = json.load(confile)
+    with open("build_config.json", "w") as confile:
+        config["version"] = str(new_version)
+        json.dump(config, confile, indent=2)
 
     # Return new version.
-    print("Bumping Version Number: {} -> {}".format(current_version, new_version))
+    print(f"Bumped Version Number: {current_version} -> {new_version}")
     return new_version
 
 
+def set_version(version_string):
+    current_version = get_current_version()
+
+    branch_okay = check_branch()
+    version_is_valid = semver.VersionInfo.isvalid(version_string)
+    if branch_okay and version_is_valid:
+        new_version = semver.VersionInfo.parse(version_string)
+
+        # Update the config file with the new version
+        with open("build_config.json", "r") as confile:
+            config = json.load(confile)
+        with open("build_config.json", "w") as confile:
+            config["version"] = str(new_version)
+            json.dump(config, confile, indent=2)
+        print(f"Set Version Number: {current_version} -> {new_version}")
+        return new_version
+    else:
+        if not branch_okay:
+            print(f"Can't increase version on branch {get_git_branch()} without confirmation")
+        if not version_is_valid:
+            print(f"{version_string} is not a valid SemVer value.")
+        return current_version
+
+
 # Copy the version to the __init__.py file.
-def copy_version_to_package(path: str, v: str):
+def copy_version_to_package(path, version):
     """ Copy the single source of truth version number into the package as well. """
 
     # Copy __version__ to all root-level files in path.
@@ -48,4 +109,35 @@ def copy_version_to_package(path: str, v: str):
                 if "__version__" not in line:
                     new_file.write(line)
                 else:
-                    new_file.write('__version__ = "{}"\n'.format(v))
+                    new_file.write('__version__ = "{}"\n'.format(version))
+
+
+def handle_version(args):
+    print(args)
+    final_version = get_current_version()
+    if args.version:
+        print(f"Current Version: {str(final_version)}")
+    elif args.set:
+        final_version = set_version(args.set)
+    elif args.increment:
+        final_version = increment_version(args.increment)
+    else:
+        print(f"Version unchanged: {str(final_version)}")
+    return final_version
+
+
+if __name__ == "__main__":
+    args = parse_arguments()
+    prev_version = get_current_version()
+    final_version = handle_version(args)
+
+    current_branch = get_git_branch()
+    if args.location == "remote":
+        if not args.force:
+            assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
+            assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
+        else:
+            if current_branch != "main":
+                print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
+            if final_version <= prev_version:
+                print(f"BYPASS - publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)})")

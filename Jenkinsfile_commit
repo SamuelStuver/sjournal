@@ -34,11 +34,11 @@ pipeline {
                         reportName: 'Pytest Report'])
 
             // Remove all exited containers and volumes
-            // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
-            sh "docker system prune --force -a --volumes"
+            sh "docker ps -a -q -f status=exited | xargs docker rm -v"
+            // sh "docker system prune --force -a --volumes"
         }
         failure {
-            sh "echo Do something on Failure"
+            sh "echo TODO: Do something on Failure"
         }
     }
 }

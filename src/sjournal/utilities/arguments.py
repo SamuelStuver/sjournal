@@ -8,7 +8,7 @@ def parse_args():
 
     subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
     parser.add_argument('-d', '--debug', action='store_true', help="Output to reports/debug.log instead of stdout")
-    parser.add_argument('-v', '--version', action='store_true', help="Show sjournal version")
+    parser.add_argument('-v', '--version', action='store_true', help="Show sjournal information")
 
     # Add command
     parser_add = subparsers.add_parser('add', help='Add a note to the database')

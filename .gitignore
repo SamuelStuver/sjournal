@@ -5,3 +5,5 @@ reports/
 config.json
 sjournal_config.json
 Pipfile*
+set_env.py
+test.sh
