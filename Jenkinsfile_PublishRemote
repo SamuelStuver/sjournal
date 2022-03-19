@@ -9,7 +9,6 @@ pipeline {
     stages {
         stage('Build and Publish to PyPI') {
             steps {
-                // TODO: Pass PyPI credentials from Jenkins Config into Dockerfile
                 sh "docker build -t sjournal-docker --build-arg TEST_ENV=remote_publish --build-arg PYPI_REPO_USER=$PYPI_REPO_USER --build-arg PYPI_REPO_PASS=$PYPI_REPO_PASS ."
             }
         }
