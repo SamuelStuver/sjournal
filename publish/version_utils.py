@@ -4,6 +4,7 @@ import sys
 import semver
 import subprocess
 import argparse
+from rich.prompt import Confirm
 
 
 def parse_arguments():
@@ -14,7 +15,9 @@ def parse_arguments():
     parser.add_argument('-s', '--set', action='store', default=None, help="Set a specific version")
 
     parser.add_argument('-v', '--version', action='store_true', help="Show the current version")
-
+    parser.add_argument('-l', '--location', action='store', default="local", choices=["local", "remote"],
+                        help="Show the current version")
+    parser.add_argument('-f', '--force', action='store_true', help="force publish without verifying version or branch")
     return parser.parse_args()
 
 
@@ -34,17 +37,24 @@ def get_current_version():
     return version
 
 
+def check_branch():
+    current_branch = get_git_branch()
+
+    if current_branch == "main":
+        return True
+    else:
+        return Confirm.ask(f"Current branch is NOT main ({current_branch}).\nAlter the version anyway?")
+
+
 def increment_version(part):
 
     # Get the current version
     current_version = get_current_version()
     new_version = current_version
 
-    # Increment the version
-    if get_git_branch() != "main":
-        # CONFIRM THAT INCREASING THE VERSION IS OKAY OUTSIDE OF MAIN
-        pass
-    new_version = new_version.next_version(part, prerelease_token="alpha")
+    # Increment the version. If branch is not main, ask for confirmation first
+    if check_branch():
+        new_version = new_version.next_version(part, prerelease_token="alpha")
 
     # Update the config file with the new version
     with open("build_config.json", "r") as confile:
@@ -61,7 +71,9 @@ def increment_version(part):
 def set_version(version_string):
     current_version = get_current_version()
 
-    if semver.VersionInfo.isvalid(version_string):
+    branch_okay = check_branch()
+    version_is_valid = semver.VersionInfo.isvalid(version_string)
+    if branch_okay and version_is_valid:
         new_version = semver.VersionInfo.parse(version_string)
 
         # Update the config file with the new version
@@ -73,8 +85,11 @@ def set_version(version_string):
         print(f"Set Version Number: {current_version} -> {new_version}")
         return new_version
     else:
-        print(f"{version_string} is not a valid SemVer value.")
-        exit(1)
+        if not branch_okay:
+            print(f"Can't increase version on branch {get_git_branch()} without confirmation")
+        if not version_is_valid:
+            print(f"{version_string} is not a valid SemVer value.")
+        return current_version
 
 
 # Copy the version to the __init__.py file.
@@ -97,11 +112,32 @@ def copy_version_to_package(path, version):
                     new_file.write('__version__ = "{}"\n'.format(version))
 
 
+def handle_version(args):
+    print(args)
+    final_version = get_current_version()
+    if args.version:
+        print(f"Current Version: {str(final_version)}")
+    elif args.set:
+        final_version = set_version(args.set)
+    elif args.increment:
+        final_version = increment_version(args.increment)
+    else:
+        print(f"Version unchanged: {str(final_version)}")
+    return final_version
+
+
 if __name__ == "__main__":
     args = parse_arguments()
-    if args.version:
-        print(f"Current Version: {str(get_current_version())}")
-    if args.set:
-        set_version(args.set)
-    elif args.increment:
-        increment_version(args.increment)
+    prev_version = get_current_version()
+    final_version = handle_version(args)
+
+    current_branch = get_git_branch()
+    if args.location == "remote":
+        if not args.force:
+            assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
+            assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
+        else:
+            if current_branch != "main":
+                print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
+            if final_version <= prev_version:
+                print(f"BYPASS - publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)})")

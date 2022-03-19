@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-python version_utils.py $*
+set -e
+python version_utils.py -l local $*
 python setup.py sdist bdist_wheel && pip install dist/*.whl
 python clean.py

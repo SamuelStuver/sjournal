@@ -474,7 +474,8 @@ def main():
     args = parse_args()
 
     if args.version:
-        print(__version__)
+        print(f"sjournal v{__version__} (Made by Sam Stuver)")
+
     else:
         journal = SJournal(args)
         journal.run()
