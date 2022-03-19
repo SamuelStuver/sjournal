@@ -36,7 +36,7 @@ pipeline {
 
             // Remove all exited containers and volumes
             sh "docker ps -a -q -f status=exited | xargs docker rm -v"
-            // sh "docker system prune --force -a --volumes"
+            sh "docker system prune --force -a --volumes"
         }
         failure {
             sh "echo TODO: Do something on Failure"
