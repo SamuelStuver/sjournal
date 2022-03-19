@@ -3,6 +3,8 @@ FROM python:3.9.10-bullseye
 WORKDIR /app
 
 ARG TEST_ENV=local_repo
+ARG PYPI_REPO_USER=NOTGIVEN
+ARG PYPI_REPO_PASS=NOTGIVEN
 RUN echo ${TEST_ENV}
 
 COPY requirements.txt requirements.txt
