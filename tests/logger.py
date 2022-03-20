@@ -12,15 +12,16 @@ def initialize_logger():
 
     # Handlers
     c_handler = logging.StreamHandler(sys.stdout)
-    f_handler = logging.FileHandler(filename=f'reports/log.log', mode='w')
+    f_handler = logging.FileHandler(filename=f'reports/test_log.log', mode='w')
     c_handler.setLevel("DEBUG")
     f_handler.setLevel("DEBUG")
 
     # Formatting
-    c_format = logging.Formatter('{asctime}.{msecs:03.0f} | {module:^20} | {funcName:^30} | {levelname:^10} | {message}',
+    logformat = '{asctime}.{msecs:03.0f} {levelname:^10} [{module:>20}({lineno:>3})] {funcName:<20} | {message}'
+    c_format = logging.Formatter(logformat,
                                  datefmt='%Y-%m-%d %H:%M:%S',
                                  style='{')
-    f_format = logging.Formatter('{asctime}.{msecs:03.0f} | {module:^20} | {funcName:^30} | {levelname:^10} | {message}',
+    f_format = logging.Formatter(logformat,
                                  datefmt='%Y-%m-%d %H:%M:%S',
                                  style='{')
     c_handler.setFormatter(c_format)

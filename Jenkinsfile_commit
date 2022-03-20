@@ -1,0 +1,44 @@
+pipeline {
+    agent any
+    environment {
+    DOCKER_BUILDKIT=1
+    }
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+    stages {
+        stage('Build') {
+            steps {
+                sh "docker build -t sjournal-docker --build-arg TEST_ENV=local_repo ."
+            }
+        }
+        stage('Test') {
+            steps {
+                // Run Tests
+                sh 'mkdir -p reports'
+                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker python -m pytest --test_environment=local_repo'
+            }
+        }
+    }
+    post {
+        always {
+            sh "ls"
+            sh "ls reports"
+            sh "echo RUNNING JUNIT PLUGIN"
+            junit 'reports/report.xml'
+            publishHTML (target : [allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: false,
+                        reportDir: 'reports',
+                        reportFiles: 'report.html',
+                        reportName: 'Pytest Report'])
+
+            // Remove all exited containers and volumes
+            sh "docker ps -a -q -f status=exited | xargs docker rm -v"
+            // sh "docker system prune --force -a --volumes"
+        }
+        failure {
+            sh "echo TODO: Do something on Failure"
+        }
+    }
+}

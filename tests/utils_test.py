@@ -1,6 +1,8 @@
 import shutil
 import os
 import json
+import random
+import string
 from logger import logger
 
 
@@ -28,8 +30,22 @@ def delete_file(file_path):
         logger.warning(f"file does not exist to delete: {file_path}")
         return False
 
-# VALIDATIONS
 
+def random_string(length, use_punctuation=False, exclude=None):
+    options = " " + string.ascii_letters
+    if use_punctuation:
+        options += string.punctuation
+    if exclude:
+        for c in exclude:
+            options = options.replace(c, '')
+    return ''.join([random.choice(options) for i in range(length)])
+
+
+def random_hex_color():
+    return "#" + ''.join([random.choice('ABCDEF0123456789') for i in range(6)])
+
+
+# VALIDATIONS
 
 def validate_note(note, expected):
     logger.info("Verify that the note has the correct data")
@@ -40,7 +56,9 @@ def validate_note(note, expected):
 
 
 def validate_config(expected):
-    config_path = os.path.join(get_project_root(), "config.json")
+    HOME_DIR = os.path.expanduser('~')
+    SJOURNAL_DIR = os.path.join(HOME_DIR, 'sjournal')
+    config_path = os.path.join(SJOURNAL_DIR, "sjournal_config.json")
 
     logger.info(f"Verify that the correct values are used in config: {config_path}")
     logger.debug(f"expected: {expected}")
@@ -49,8 +67,3 @@ def validate_config(expected):
         logger.debug(f"config: {config}")
     for param in expected.keys():
         assert config[param] == expected[param]
-
-
-# if __name__ == "__main__":
-#     # backup_file(r"C:\Users\samue\Projects\sjournal\config.json")
-#     # delete_file(r"C:\Users\samue\Projects\sjournal\config_backup.json")

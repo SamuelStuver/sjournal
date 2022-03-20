@@ -5,7 +5,10 @@ def parse_args():
 
     # Read environment from command line args
     parser = argparse.ArgumentParser()
+
     subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
+    parser.add_argument('-d', '--debug', action='store_true', help="Output to reports/debug.log instead of stdout")
+    parser.add_argument('-v', '--version', action='store_true', help="Show sjournal information")
 
     # Add command
     parser_add = subparsers.add_parser('add', help='Add a note to the database')
@@ -23,7 +26,7 @@ def parse_args():
 
     # Categories command
     parser_categories = subparsers.add_parser('categories', help="List all categories in the current journal")
-    parser_categories.add_argument('search_criteria', nargs="?", action='store', type=str)
+    parser_categories.add_argument('-s', '--search', nargs="?", action='store', type=str)
 
     # Delete command
     parser_delete = subparsers.add_parser('delete', help='Delete one or multiple notes from the database')
@@ -35,7 +38,7 @@ def parse_args():
                              help="ID of note to edit")
 
     # Erase command
-    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the database')
+    parser_erase = subparsers.add_parser('erase', help='Delete all notes from the current journal')
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')

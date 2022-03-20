@@ -1,0 +1,13 @@
+{
+  "author": "Sam Stuver",
+  "package_name_override": "sjournal",
+  "email": "samuelstuver@gmail.com",
+  "description": "A simple and light-weight notepad for the command line",
+  "url": "https://github.com/SamuelStuver/sjournal",
+  "python_version": "3.8",
+  "version": "0.1.0",
+  "scripts": [
+    "sjournal = sjournal:main",
+    "sj = sjournal:main"
+  ]
+}
