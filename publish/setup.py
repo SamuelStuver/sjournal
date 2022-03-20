@@ -2,7 +2,7 @@
 import os
 import setuptools
 import json
-from version_utils import parse_arguments, handle_version, copy_version_to_package, get_current_version, get_git_branch
+from version_utils import copy_version_to_package, get_current_version
 
 # ======================================================================================================================
 # Fill in this information for each package.
@@ -26,6 +26,13 @@ PACKAGE_NAME_OVERRIDE = (
     if "package_name_override" not in config or config["package_name_override"] is None
     else config["package_name_override"]
 )
+
+CLASSIFIERS = ["License :: OSI Approved :: MIT License",
+               "Operating System :: Microsoft :: Windows :: Windows 10",
+               "Operating System :: POSIX :: Linux"]
+
+for py_ver in PYTHON_VERSION:
+    CLASSIFIERS.append(f"Programming Language :: Python :: {py_ver}")
 
 # ======================================================================================================================
 # Discover the core package.
@@ -81,6 +88,8 @@ else:
     print(f"Requirements file not found at {REQUIREMENTS_FILE}")
     requirement_packages = []
 
+
+
 setuptools.setup(
     author=AUTHOR,
     author_email=EMAIL,
@@ -93,8 +102,6 @@ setuptools.setup(
     packages=packages,
     package_dir={PACKAGE_NAME: PACKAGE_PATH},
     install_requires=requirement_packages,
-    classifiers=[f"Programming Language :: Python :: {PYTHON_VERSION}",
-                 "License :: OSI Approved :: MIT License",
-                 "Operating System :: OS Independent"],
+    classifiers=CLASSIFIERS,
     entry_points={"console_scripts": SCRIPTS},
 )
