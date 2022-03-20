@@ -124,13 +124,13 @@ def handle_version(args):
 
     elif args.use_tag:
         if tag_name is not None:
-            tag_is_version = semver.VersionInfo.isvalid(tag_name)
+            tag_is_version = semver.VersionInfo.isvalid(tag_name.strip("v"))
             tag_is_increment = tag_name in ['major', 'minor', 'patch', 'prerelease']
 
             print(f"Using Tag: {tag_name} - Is Increment: {tag_is_increment} - Is Version: {tag_is_version}")
 
             if tag_is_version:
-                final_version = set_version(tag_name)
+                final_version = set_version(tag_name.strip("v"))
             elif tag_is_increment:
                 final_version = increment_version(tag_name)
 
