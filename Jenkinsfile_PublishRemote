@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Build and Publish to PyPI') {
             steps {
-                sh "docker build -t sjournal-docker --build-arg TEST_ENV=remote_publish --build-arg PYPI_REPO_USER=$PYPI_REPO_USER --build-arg PYPI_REPO_PASS=$PYPI_REPO_PASS ."
+                sh "docker build -t sjournal-docker -f Dockerfile_publish --build-arg TEST_ENV=remote_publish --build-arg PYPI_REPO_USER=$PYPI_REPO_USER --build-arg PYPI_REPO_PASS=$PYPI_REPO_PASS ."
             }
         }
         stage('Run Tests on Remote Build') {
