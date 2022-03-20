@@ -4,8 +4,6 @@ FROM python:bullseye
 WORKDIR /app
 
 ARG TEST_ENV=local_repo
-ARG PYPI_REPO_USER=NOTGIVEN
-ARG PYPI_REPO_PASS=NOTGIVEN
 RUN echo ${TEST_ENV}
 
 COPY requirements.txt requirements.txt
@@ -13,9 +11,9 @@ COPY developer_requirements.txt developer_requirements.txt
 
 COPY . .
 
-RUN if [ "$TEST_ENV" = "local_repo" ] ; then pip install -r requirements.txt -r developer_requirements.txt ; else echo "NOT LOCAL REPO" ; fi
 
-RUN if [ "$TEST_ENV" = "local_publish" ] ; then pip install -r developer_requirements.txt ; else echo "NOT LOCAL PUBLISH" ; fi
-RUN if [ "$TEST_ENV" = "local_publish" ] ; then cd publish && sh ./publish_local.sh ; else echo "NOT LOCAL PUBLISH" ; fi
+RUN pip install -r developer_requirements.txt
+RUN if [ "$TEST_ENV" = "local_repo" ] ; then pip install -r requirements.txt ; else echo "TEST_ENV not local_repo, don't install package requirements" ; fi
+RUN if [ "$TEST_ENV" = "local_publish" ] ; then cd publish && sh ./publish_local.sh ; else echo "TEST_ENV not local_publish, don't build the package locally" ; fi
 
-CMD [ "python", "-m" , "pytest"]
+CMD [ "python", "-m" , "pytest", "--test_environment=$TEST_ENV"]
