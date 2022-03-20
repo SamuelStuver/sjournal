@@ -1,5 +1,5 @@
-FROM python:3.9.10-bullseye
-# FROM python:bullseye
+# FROM python:3.9.10-bullseye
+FROM python:bullseye
 
 WORKDIR /app
 
@@ -11,12 +11,11 @@ COPY developer_requirements.txt developer_requirements.txt
 
 COPY . .
 
-# RUN apt-get install gcc musl-dev python3-dev libffi-dev openssl-dev -y 
-RUN python -m pip install --upgrade pip 
+RUN python -m pip install -U pip
 RUN pip install -r developer_requirements.txt
 RUN pip install twine
-# RUN cd publish && sh ./publish_remote.sh --use_tag -f
-# RUN pip install sjournal
+RUN cd publish && sh ./publish_remote.sh --use_tag -f
+RUN pip install sjournal
 
 
 CMD [ "python", "-m" , "pytest", "--test_environment=remote_publish"]
