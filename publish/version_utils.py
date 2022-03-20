@@ -155,9 +155,8 @@ if __name__ == "__main__":
         final_version = handle_version(args)
 
         if not args.force:
-            assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
             assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
-
+            assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
         else:
             if current_branch != "main":
                 print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
