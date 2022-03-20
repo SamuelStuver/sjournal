@@ -17,6 +17,8 @@ def parse_arguments():
     parser.add_argument('-v', '--version', action='store_true', help="Show the current version")
     parser.add_argument('-l', '--location', action='store', default="local", choices=["local", "remote"],
                         help="Show the current version")
+    parser.add_argument('-t', '--use_tag', action='store_true',
+                        help="Use the tag for the current commit to update the version")
     parser.add_argument('-f', '--force', action='store_true', help="force publish without verifying version or branch")
     return parser.parse_args()
 
@@ -37,13 +39,16 @@ def get_current_version():
     return version
 
 
-def check_branch():
-    current_branch = get_git_branch()
+def get_git_tag():
+    command = "git describe --tags --abbrev=0 --exact-match".split()
+    try:
+        resp = subprocess.check_output(command)
+        tag_name = resp.decode("utf-8").strip()
+    except subprocess.CalledProcessError:
+        print(f"Failed to get tag for current commit. Make sure the commit is tagged.")
+        return None
 
-    if current_branch == "main":
-        return True
-    else:
-        return Confirm.ask(f"Current branch is NOT main ({current_branch}).\nAlter the version anyway?")
+    return tag_name
 
 
 def increment_version(part):
@@ -53,8 +58,7 @@ def increment_version(part):
     new_version = current_version
 
     # Increment the version. If branch is not main, ask for confirmation first
-    if check_branch():
-        new_version = new_version.next_version(part, prerelease_token="alpha")
+    new_version = new_version.next_version(part, prerelease_token="alpha")
 
     # Update the config file with the new version
     with open("build_config.json", "r") as confile:
@@ -71,9 +75,8 @@ def increment_version(part):
 def set_version(version_string):
     current_version = get_current_version()
 
-    branch_okay = check_branch()
     version_is_valid = semver.VersionInfo.isvalid(version_string)
-    if branch_okay and version_is_valid:
+    if version_is_valid:
         new_version = semver.VersionInfo.parse(version_string)
 
         # Update the config file with the new version
@@ -85,8 +88,6 @@ def set_version(version_string):
         print(f"Set Version Number: {current_version} -> {new_version}")
         return new_version
     else:
-        if not branch_okay:
-            print(f"Can't increase version on branch {get_git_branch()} without confirmation")
         if not version_is_valid:
             print(f"{version_string} is not a valid SemVer value.")
         return current_version
@@ -114,28 +115,49 @@ def copy_version_to_package(path, version):
 
 def handle_version(args):
     print(args)
-    final_version = get_current_version()
+    original_version = get_current_version()
+    final_version = original_version
+    tag_name = get_git_tag()
+
     if args.version:
         print(f"Current Version: {str(final_version)}")
+
+    elif args.use_tag:
+        if tag_name is not None:
+            tag_is_version = semver.VersionInfo.isvalid(tag_name)
+            tag_is_increment = tag_name in ['major', 'minor', 'patch', 'prerelease']
+
+            print(f"Using Tag: {tag_name} - Is Increment: {tag_is_increment} - Is Version: {tag_is_version}")
+
+            if tag_is_version:
+                final_version = set_version(tag_name)
+            elif tag_is_increment:
+                final_version = increment_version(tag_name)
+
     elif args.set:
         final_version = set_version(args.set)
+
     elif args.increment:
         final_version = increment_version(args.increment)
-    else:
-        print(f"Version unchanged: {str(final_version)}")
+
+    print(f"\nPrevious Version: {str(original_version)}\nCurrent Version: {str(final_version)}\n")
+
     return final_version
 
 
 if __name__ == "__main__":
     args = parse_arguments()
     prev_version = get_current_version()
-    final_version = handle_version(args)
 
     current_branch = get_git_branch()
+
     if args.location == "remote":
+        final_version = handle_version(args)
+
         if not args.force:
-            assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
             assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
+            assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
+
         else:
             if current_branch != "main":
                 print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
