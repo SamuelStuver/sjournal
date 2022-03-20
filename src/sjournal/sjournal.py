@@ -339,7 +339,7 @@ class SJournal:
             new_filename = os.path.join(backup_dir, self.args.filename)
 
         new_filename = new_filename.replace(".db", "") + ".db"
-        self.console.print(f"BACKING UP {self.db_file} TO FILE {new_filename}")
+        self.console.print(f"BACKING UP {self.db_file}\nTO FILE {new_filename}")
         shutil.copy(self.db_file, new_filename)
 
     def restore(self):
@@ -352,7 +352,7 @@ class SJournal:
 
         if filename and os.path.exists(filename.replace(".db", "") + ".db"):
             filename = filename.replace(".db", "") + ".db"
-            self.console.print(f"RESTORING BACKUP FROM {filename}. REPLACING {self.db_file}")
+            self.console.print(f"RESTORING BACKUP FROM {filename}\nREPLACING {self.db_file}")
             shutil.copy(filename, self.db_file)
             # self.db_file = filename
         else:

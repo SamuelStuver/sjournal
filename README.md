@@ -1,7 +1,6 @@
 # sjournal ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/SamuelStuver/sjournal?include_prereleases&logo=github)
 A simple and light-weight notepad for the command line:
 
-![Demo](https://raw.githubusercontent.com/SamuelStuver/sjournal/main/demo.png)
 ![Demo](./demos/demo.png)
 
 ## Installation
@@ -40,26 +39,145 @@ Set journal to <HOME_DIR>/sjournal/journals/MyJournal.db
 └────┴───────────┴──────────┴─────────┘
 ```
 
-### Adding, Editing, Deleting Notes
-Add notes with `sjournal add` 
+### Adding Notes
+Add notes with `sjournal add`:
 
 - Set the category with `-c/--category`. Default category is "General"
 - Set the Style ([Rich Markup](https://rich.readthedocs.io/en/latest/markup.html)) with `-s/--style`
-![Demo](demos/add_note.png)
+
+```bash
+> sjournal add -c TODO -s "bold red" "Update the README ASAP"
+~ OR ~
+> sjournal add --category="TODO" --style="bold red" "Update the README ASAP"
+
+> sjournal
+```
+
+![Demo_Add](./demos/add_note.png)
+
+### Listing and Searching Notes
+Show notes with `sjournal` or `sjournal list`:
+```bash
+Show most recent 5 notes by default:
+> sjournal list
+                     MyJournal
+┌────┬───────────────────┬──────────┬──────────────┐
+│ ID │ Timestamp         │ Category │ Content      │
+├────┼───────────────────┼──────────┼──────────────┤
+│ 5  │ 03-20-22 15:55:40 │ General  │ Misc. Note 5 │
+│ 4  │ 03-20-22 15:55:39 │ General  │ Misc. Note 4 │
+│ 3  │ 03-20-22 15:55:38 │ General  │ Misc. Note 3 │
+│ 2  │ 03-20-22 15:55:37 │ General  │ Misc. Note 2 │
+│ 1  │ 03-20-22 15:55:35 │ General  │ Misc. Note 1 │
+└────┴───────────────────┴──────────┴──────────────┘
+
+Show all notes:
+> sjournal list -a 
+                          MyJournal
+┌────┬───────────────────┬──────────┬────────────────────────┐
+│ ID │ Timestamp         │ Category │ Content                │
+├────┼───────────────────┼──────────┼────────────────────────┤
+│ 5  │ 03-20-22 15:55:40 │ General  │ Misc. Note 5           │
+│ 4  │ 03-20-22 15:55:39 │ General  │ Misc. Note 4           │
+│ 3  │ 03-20-22 15:55:38 │ General  │ Misc. Note 3           │
+│ 2  │ 03-20-22 15:55:37 │ General  │ Misc. Note 2           │
+│ 1  │ 03-20-22 15:55:35 │ General  │ Misc. Note 1           │
+│ 0  │ 03-20-22 15:30:55 │ TODO     │ Update the readme ASAP │
+└────┴───────────────────┴──────────┴────────────────────────┘
+
+Show the last N notes:
+> sjournal list 2
+                     MyJournal
+┌────┬───────────────────┬──────────┬──────────────┐
+│ ID │ Timestamp         │ Category │ Content      │
+├────┼───────────────────┼──────────┼──────────────┤
+│ 5  │ 03-20-22 15:55:40 │ General  │ Misc. Note 5 │
+│ 4  │ 03-20-22 15:55:39 │ General  │ Misc. Note 4 │
+└────┴───────────────────┴──────────┴──────────────┘
+
+Show notes with a given category:
+> sjournal list -c TODO
+                          MyJournal
+┌────┬───────────────────┬──────────┬────────────────────────┐
+│ ID │ Timestamp         │ Category │ Content                │
+├────┼───────────────────┼──────────┼────────────────────────┤
+│ 0  │ 03-20-22 15:30:55 │ TODO     │ Update the readme ASAP │
+└────┴───────────────────┴──────────┴────────────────────────┘
+
+Search note content with a specific word or phrase (regex allowed)
+> sjournal search readme
+                          MyJournal
+┌────┬───────────────────┬──────────┬────────────────────────┐
+│ ID │ Timestamp         │ Category │ Content                │
+├────┼───────────────────┼──────────┼────────────────────────┤
+│ 0  │ 03-20-22 15:30:55 │ TODO     │ Update the readme ASAP │
+└────┴───────────────────┴──────────┴────────────────────────┘
+```
+
+### Editing and Deleting Notes
+Edit the most recent note, or edit by ID:
+```bash
+> sjournal edit
+Editing Note #0 (copied to clipboard): "Update the README ASAP"
+Enter new note text ([bold red]Update the README ASAP[/]): Update the readme eventually
+
+> sjournal edit 0
+Editing Note #0 (copied to clipboard): "Update the readme eventually"
+Enter new note text (Update the readme eventually): Update the readme [bold red]RIGHT NOW[/]
+```
+Delete notes by a single ID, mutiple IDs, or a range of IDs:
+```bash
+> sjournal
+                     MyJournal
+┌────┬───────────────────┬──────────┬──────────────┐
+│ ID │ Timestamp         │ Category │ Content      │
+├────┼───────────────────┼──────────┼──────────────┤
+│ 5  │ 03-20-22 15:48:38 │ General  │ Misc. Note 5 │
+│ 4  │ 03-20-22 15:48:37 │ General  │ Misc. Note 4 │
+│ 3  │ 03-20-22 15:48:34 │ General  │ Misc. Note 3 │
+│ 2  │ 03-20-22 15:48:33 │ General  │ Misc. Note 2 │
+│ 1  │ 03-20-22 15:48:30 │ General  │ Misc. Note 1 │
+└────┴───────────────────┴──────────┴──────────────┘
+
+> sjournal delete 4
+DELETED NOTE #4
+
+> sjournal delete 1 2 3
+DELETED NOTE #1
+DELETED NOTE #2
+DELETED NOTE #3
+
+> sjournal delete 2-5
+DELETED NOTE #2
+DELETED NOTE #3
+DELETED NOTE #4
+DELETED NOTE #5
+```
+
+### Backup and Restore Journals
+Journals can be backed up and restored with `sjournal backup` and `sjournal restore`
+
+Specific filenames can be given with `-f <filename>`. Othewise, the current time at backup will be used.
+```bash
+> sjournal backup
+BACKING UP C:/Users/samue/sjournal/journals/MyJournal.db 
+TO FILE C:/Users/samue/sjournal/journals/backups/MyJournal/backup_MyJournal_22_03_20_16_00_45.db
+
+> sjournal restore
+RESTORING BACKUP FROM C:\Users\samue\sjournal\journals\backups\MyJournal\backup_MyJournal_22_03_20_16_00_45.db
+REPLACING C:\Users\samue\sjournal\journals\MyJournal.db
+```
 
 
-## Setting up [Cmder](https://cmder.net) alias 
-If you want to run Sjournal with a different shorthand within Cmder (such as `myalias`):
+## Custom Aliases (Windows)
+If you want to run Sjournal with a different shorthand within Cmder or Windows Cmd (such as `myalias`):
+
+### Setting up an alias in [Cmder](https://cmder.net)
 ```bash
 > alias myalias=sjournal $*
 ```
-After restarting Cmder, sjournal can be used by calling the new alias in the command line:
-```bash
-> myalias --version
-```
 
-## Setting up Windows Cmd alias
-If you want to run Sjournal with a different shorthand within Windows Cmd (such as `myalias`):
+### Setting up an alias in Windows Cmd
 ```bash
 > cd c:/
 > mkdir alias
@@ -70,7 +188,7 @@ If you want to run Sjournal with a different shorthand within Windows Cmd (such 
 ```
 Finally, add `c:/alias` to PATH in your system environment variables.
 
-After restarting Cmd, sjournal can be used by calling the new alias in the command line:
+After restarting the terminal, sjournal can be used by calling the new alias in the command line:
 ```bash
 > myalias --version
 ```
@@ -100,6 +218,5 @@ Commands:
     restore             Restore the database from a file. If --filename is not given, restore the latest backup
     search              List notes matching search term
 
- 
-```
 To see help for specific commands, use sjournal [COMMAND] --help
+```
