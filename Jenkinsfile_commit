@@ -4,7 +4,7 @@ pipeline {
     DOCKER_BUILDKIT=1
     }
     options {
-        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
     stages {
         stage('Build') {
@@ -34,8 +34,8 @@ pipeline {
                         reportName: 'Pytest Report'])
 
             // Remove all exited containers and volumes
-            sh "docker ps -a -q -f status=exited | xargs docker rm -v"
-            // sh "docker system prune --force -a --volumes"
+            // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
+            sh "docker system prune --force -a --volumes"
         }
         failure {
             sh "echo TODO: Do something on Failure"
