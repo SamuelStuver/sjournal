@@ -9,14 +9,14 @@ pipeline {
     stages {
         stage('Build and Publish to PyPI') {
             steps {
-                sh "docker build -t sjournal-docker --build-arg TEST_ENV=remote_publish --build-arg PYPI_REPO_USER=$PYPI_REPO_USER --build-arg PYPI_REPO_PASS=$PYPI_REPO_PASS ."
+                sh "docker build -t sjournal-docker-publish -f Dockerfile_publish --build-arg TEST_ENV=remote_publish --build-arg PYPI_REPO_USER=$PYPI_REPO_USER --build-arg PYPI_REPO_PASS=$PYPI_REPO_PASS ."
             }
         }
         stage('Run Tests on Remote Build') {
             steps {
                 // Run Tests
                 sh 'mkdir -p reports'
-                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker python -m pytest --test_environment=remote_publish'
+                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-publish'
             }
         }
     }
@@ -34,8 +34,9 @@ pipeline {
                         reportName: 'Pytest Report'])
 
             // Remove all exited containers and volumes
-            // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
-            sh "docker system prune --force -a --volumes"
+            sh "docker ps -a -q --filter ancestor=sjournal-docker-publish | xargs docker stop"
+            sh "docker ps -a -q --filter ancestor=sjournal-docker-publish | xargs docker rm"
+            // sh "docker system prune --force -a --volumes"
         }
         failure {
             sh "echo TODO: Do something on Failure"

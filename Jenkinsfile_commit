@@ -9,14 +9,14 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh "docker build -t sjournal-docker --build-arg TEST_ENV=local_repo ."
+                sh "docker build -t sjournal-docker-localrepo -f Dockerfile_test --build-arg TEST_ENV=local_repo ."
             }
         }
         stage('Test') {
             steps {
                 // Run Tests
                 sh 'mkdir -p reports'
-                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker python -m pytest --test_environment=local_repo'
+                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-localrepo python -m pytest --test_environment=local_repo'
             }
         }
     }
@@ -34,8 +34,9 @@ pipeline {
                         reportName: 'Pytest Report'])
 
             // Remove all exited containers and volumes
-            // sh "docker ps -a -q -f status=exited | xargs docker rm -v"
-            sh "docker system prune --force -a --volumes"
+            sh "docker ps -a -q --filter ancestor=sjournal-docker-localrepo | xargs docker stop"
+            sh "docker ps -a -q --filter ancestor=sjournal-docker-localrepo | xargs docker rm"
+            // sh "docker system prune --force -a --volumes"
         }
         failure {
             sh "echo TODO: Do something on Failure"

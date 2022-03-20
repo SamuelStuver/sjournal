@@ -17,7 +17,7 @@ def load_credentials():
 
 def upload_distribution():
     repo_user, repo_pass = load_credentials()
-    command = f"pip install twine && twine upload -u {repo_user} -p {repo_pass} dist/*"
+    command = f"pip install twine && twine upload --verbose -u {repo_user} -p {repo_pass} dist/*"
     os.system(command)
 
 
