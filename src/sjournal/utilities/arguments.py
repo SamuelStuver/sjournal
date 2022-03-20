@@ -91,7 +91,7 @@ def parse_args():
         else:
             parsers[args.help_command].print_help()
 
-        print("\n To see help for specific commands, use sjournal.py [COMMAND] --help")
+        print("\n To see help for specific commands, use sjournal [COMMAND] --help")
         exit()
 
     return args
