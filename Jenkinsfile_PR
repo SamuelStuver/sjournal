@@ -16,7 +16,7 @@ pipeline {
             steps {
                 // Run Tests
                 sh 'mkdir -p reports'
-                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-localpublish'
+                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-localpublish -e TEST_ENV=local_publish'
             }
         }
     }
