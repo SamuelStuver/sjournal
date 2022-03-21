@@ -24,8 +24,15 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def get_git_branch():
-    command = "git rev-parse --abbrev-ref HEAD".split()
+def get_current_commit_sha():
+    command = "git rev-parse HEAD".split()
+    resp = subprocess.check_output(command)
+    commit_sha = resp.decode("utf-8").strip()
+    return commit_sha
+
+
+def get_source_branch(commit_sha):
+    command = f"git name-rev --name-only --exclude=tags/* {commit_sha}".split()
     resp = subprocess.check_output(command)
     branch_name = resp.decode("utf-8").strip()
     return branch_name
@@ -139,7 +146,10 @@ def handle_version(args):
 if __name__ == "__main__":
     args = parse_arguments()
     print(ROOT_DIR)
-    current_branch = get_git_branch()
+    current_commit = get_current_commit_sha()
+    source_branch = get_source_branch(current_commit)
+
+    branch_can_publish = (source_branch == "main") or ("remotes/origin/main" in source_branch)
 
     prev_version, final_version = handle_version(args)
 
@@ -147,11 +157,11 @@ if __name__ == "__main__":
 
     if args.location == "remote":
         if not args.force:
-            assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
+            assert branch_can_publish, f"Attempted to publish remote from non-main branch ({source_branch} - {current_commit}).\nCheckout 'main' and merge changes before publishing."
             assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
         else:
-            if current_branch != "main":
-                print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
+            if not branch_can_publish:
+                print(f"BYPASS - publish remote from non-main branch ({source_branch}).")
             if final_version <= prev_version:
                 print(f"BYPASS - publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)})")
         print()

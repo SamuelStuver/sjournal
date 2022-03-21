@@ -14,7 +14,7 @@ COPY . .
 RUN python -m pip install -U pip
 RUN pip install -r developer_requirements.txt
 RUN pip install twine
-RUN cd publish && sh ./publish_remote.sh --use_tag -f
+RUN cd publish && sh ./publish_remote.sh --use_tag
 RUN pip install sjournal
 
 
