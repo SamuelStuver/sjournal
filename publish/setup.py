@@ -2,7 +2,7 @@
 import os
 import setuptools
 import json
-from version_utils import copy_version_to_package, get_current_version
+from version_utils import get_package_version
 
 # ======================================================================================================================
 # Fill in this information for each package.
@@ -68,9 +68,7 @@ if PACKAGE_NAME_OVERRIDE is None:
 # Automatic Package Setup Script.
 # ======================================================================================================================
 
-
-final_version = get_current_version()
-copy_version_to_package(PACKAGE_PATH, str(final_version))
+final_version = str(get_package_version())
 
 # Copy the README into the long description.
 with open("../README.md", "r") as f:

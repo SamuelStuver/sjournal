@@ -1,11 +1,12 @@
 import json
 import os
-import sys
 import semver
 import subprocess
 import argparse
-from rich.prompt import Confirm
+import requests
+import re
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -30,99 +31,86 @@ def get_git_branch():
     return branch_name
 
 
-def get_current_version():
-    # Read version from config file
-    with open("build_config.json", "r") as f:
-        config_object = json.load(f)
-        version = semver.VersionInfo.parse(config_object["version"])
-
-    return version
-
-
 def get_git_tag():
     command = "git describe --tags --abbrev=0 --exact-match".split()
+    print("\nAttempting to get tag from latest commit...")
     try:
         resp = subprocess.check_output(command)
         tag_name = resp.decode("utf-8").strip()
     except subprocess.CalledProcessError:
-        print(f"Failed to get tag for current commit. Make sure the commit is tagged.")
+        print(f"Failed to get tag for current commit.\n")
         return None
 
     return tag_name
 
 
-def increment_version(part):
+def get_pypi_version():
+    url = 'https://pypi.python.org/pypi/sjournal/json'
+    print(f"\nGetting current published version from {url}")
+    result = requests.get(url).json()
+    pypi_version = result['info']['version']
+
+    print(f"Retrieved version {pypi_version} from PyPI")
+    return semver.VersionInfo.parse(pypi_version)
+
+
+def get_package_version():
+    version_path = os.path.join(ROOT_DIR, "src", "sjournal", "utilities", "version.py")
+
+    with open(version_path, "r") as version_file:
+        version_line = version_file.readline()
+
+    regex = r'__version__ = \"(.*)\"'
+    version = re.search(regex, version_line).group(1)
+
+    return semver.VersionInfo.parse(version)
+
+
+def copy_version_to_package(version):
+
+    version_path = os.path.join(ROOT_DIR, "src", "sjournal", "utilities", "version.py")
+
+    with open(version_path, "w") as version_file:
+        version_file.write(f'__version__ = "{version}"\n')
+
+
+def increment_version(current_version, part):
 
     # Get the current version
-    current_version = get_current_version()
     new_version = current_version
 
-    # Increment the version. If branch is not main, ask for confirmation first
+    # Increment the version
     new_version = new_version.next_version(part, prerelease_token="alpha")
 
-    # Update the config file with the new version
-    with open("build_config.json", "r") as confile:
-        config = json.load(confile)
-    with open("build_config.json", "w") as confile:
-        config["version"] = str(new_version)
-        json.dump(config, confile, indent=2)
-
     # Return new version.
-    print(f"Bumped Version Number: {current_version} -> {new_version}")
+    print(f"Bumped Version Number to {new_version}")
     return new_version
 
 
 def set_version(version_string):
-    current_version = get_current_version()
 
     version_is_valid = semver.VersionInfo.isvalid(version_string)
     if version_is_valid:
         new_version = semver.VersionInfo.parse(version_string)
 
-        # Update the config file with the new version
-        with open("build_config.json", "r") as confile:
-            config = json.load(confile)
-        with open("build_config.json", "w") as confile:
-            config["version"] = str(new_version)
-            json.dump(config, confile, indent=2)
-        print(f"Set Version Number: {current_version} -> {new_version}")
+        print(f"Set Version Number to {new_version}")
         return new_version
     else:
         if not version_is_valid:
             print(f"{version_string} is not a valid SemVer value.")
-        return current_version
-
-
-# Copy the version to the __init__.py file.
-def copy_version_to_package(path, version):
-    """ Copy the single source of truth version number into the package as well. """
-
-    # Copy __version__ to all root-level files in path.
-    copy_files = ["utilities/version.py"]
-
-    for file_name in copy_files:
-        target_file = os.path.join(path, file_name)
-        with open(target_file, "r") as original_file:
-            lines = original_file.readlines()
-
-        with open(target_file, "w") as new_file:
-            for line in lines:
-                if "__version__" not in line:
-                    new_file.write(line)
-                else:
-                    new_file.write('__version__ = "{}"\n'.format(version))
+            exit(1)
 
 
 def handle_version(args):
     print(args)
-    original_version = get_current_version()
-    final_version = original_version
-    tag_name = get_git_tag()
+    pypi_version = get_pypi_version()
+    final_version = pypi_version
 
     if args.version:
         print(f"Current Version: {str(final_version)}")
 
     elif args.use_tag:
+        tag_name = get_git_tag()
         if tag_name is not None:
             tag_is_version = semver.VersionInfo.isvalid(tag_name.strip("v"))
             tag_is_increment = tag_name in ['major', 'minor', 'patch', 'prerelease']
@@ -132,28 +120,32 @@ def handle_version(args):
             if tag_is_version:
                 final_version = set_version(tag_name.strip("v"))
             elif tag_is_increment:
-                final_version = increment_version(tag_name)
+                final_version = increment_version(pypi_version, tag_name)
 
     elif args.set:
         final_version = set_version(args.set)
 
     elif args.increment:
-        final_version = increment_version(args.increment)
+        final_version = increment_version(pypi_version, args.increment)
 
-    print(f"\nPrevious Version: {str(original_version)}\nCurrent Version: {str(final_version)}\n")
+    print(f"\nPrevious Version: {str(pypi_version)}\nCurrent Version: {str(final_version)}\n")
+    print(f"Copying new version to the package")
+    copy_version_to_package(str(final_version))
+    print("Done.\n")
 
-    return final_version
+    return pypi_version, final_version
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    prev_version = get_current_version()
-
+    print(ROOT_DIR)
     current_branch = get_git_branch()
 
-    if args.location == "remote":
-        final_version = handle_version(args)
+    prev_version, final_version = handle_version(args)
 
+    assert final_version == str(get_package_version())
+
+    if args.location == "remote":
         if not args.force:
             assert current_branch == "main", f"Attempted to publish remote from non-main branch ({current_branch}).\nCheckout 'main' and merge changes before publishing."
             assert final_version > prev_version, f"Attempted to publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)}).\nIncrease the version first."
@@ -162,3 +154,4 @@ if __name__ == "__main__":
                 print(f"BYPASS - publish remote from non-main branch ({current_branch}).")
             if final_version <= prev_version:
                 print(f"BYPASS - publish remote without incrementing the version ({str(prev_version)} -> {str(final_version)})")
+        print()
