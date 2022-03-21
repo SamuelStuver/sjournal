@@ -1,4 +1,8 @@
-# sjournal ![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/SamuelStuver/sjournal?include_prereleases&logo=github)
+# sjournal 
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/SamuelStuver/sjournal?include_prereleases&logo=github)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sjournal)
+![PyPI - License](https://img.shields.io/pypi/l/sjournal)
+
 A simple and light-weight notepad for the command line:
 
 ![Demo](./demos/demo.png)
