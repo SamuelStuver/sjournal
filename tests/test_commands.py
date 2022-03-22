@@ -9,9 +9,10 @@ import shutil
 from platform import system
 from src.sjournal import SJournal
 from utils_test import backup_file, delete_file, \
-    get_project_root, \
     validate_note, validate_config, \
-    random_string, random_hex_color
+    random_string, random_hex_color, \
+    send_cli_command, read_debug, \
+    output_contains_note
 from logger import logger
 
 # Suite of testing to validate the CLI interface for sjournal using subprocess to call the application
@@ -497,61 +498,57 @@ def test_erase(random_journal, environment):
     assert journal.length == 0
 
 
-@pytest.mark.parametrize('command', [
-        'search Note 1',
-        'search',
-])
-def test_search(fixed_notes_journal, environment, command):
+def test_search_all_notes(fixed_notes_journal, environment):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
     # Start with populated, non-random journal
     journal = fixed_notes_journal
     notes = journal.notes
-    for note in notes:
-        logger.debug(note)
-    # Search the notes via commandline with debug
-    commandline = f"{sjournal_exec} --debug " + command
 
-    if "Note" not in command:
-        for i, note in enumerate(notes):
-            # send command
-            commandline = f"{sjournal_exec} --debug {command} {i}"
-            result = subprocess.run(commandline, shell=True, capture_output=False)
-            logger.debug(result)
-            assert result.returncode == 0
+    for i, note in enumerate(notes):
+        notes_with_number = [note for note in notes if str(i) in note.content]
+        logger.debug(f"For number {i}, there should be {len(notes_with_number)} notes that match")
 
-            # Read debug text into string
-            with open(DEBUG_OUTPUT, "r") as output_file:
-                full_text = output_file.read()
-
-            logger.debug(full_text)
-
-            # Search output text for the searched note
-            regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
-            match = re.search(regex, full_text)
-            assert match, f"Could not find Note # {note.id} in debug output\n{regex}"
-            logger.debug(match.group(0))
-
-    else:
-        # send command
-        result = subprocess.run(commandline, shell=True, capture_output=False)
-        logger.debug(result)
-        assert result.returncode == 0
+        # search for each note by number
+        commandline = f"{sjournal_exec} --debug search {i}"
+        send_cli_command(commandline)
 
         # Read debug text into string
-        with open(DEBUG_OUTPUT, "r") as output_file:
-            full_text = output_file.read()
+        full_output = read_debug(DEBUG_OUTPUT)
 
-        logger.debug(full_text)
+        # Confirm that the command output contains the expected note(s)
+        for matching_note in notes_with_number:
+            assert output_contains_note(full_output, matching_note)
 
-        search_term = command.split("search ")[-1]
-        expected_notes = [note for note in notes if search_term in note.content]
-        # Search output text for each note
-        for note in expected_notes:
-            regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content}"
-            match = re.search(regex, full_text)
-            assert match, f"Could not find Note # {note.id} in debug output\n{regex}"
-            logger.debug(match.group(0))
+
+def test_search_random_notes(random_journal, environment):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
+    # Start with populated, non-random journal
+    journal = random_journal
+    notes = journal.notes
+
+    for i, note in enumerate(notes):
+        # workaround until style is split from content - just gets the raw note content
+        raw_content = note.content.split(']')[1].split('[')[0]
+
+        # search for the first, middle, and last word in the note and confirm that matching notes are found
+        words = raw_content.split()
+        words = [words[0], words[len(words)//2], words[-1]]
+        for word in words:
+            notes_with_word = [note for note in notes if word in note.content]
+            logger.debug(f"For word {word}, there should be {len(notes_with_word)} notes that match")
+
+            # send command
+            commandline = f"{sjournal_exec} --debug search {word}"
+            send_cli_command(commandline)
+
+            # Read debug text into string
+            full_output = read_debug(DEBUG_OUTPUT)
+
+            # Search output text for the expected note(s)
+            for matching_note in notes_with_word:
+                assert output_contains_note(full_output, matching_note)
 
 
 def test_dummy(environment):

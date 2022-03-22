@@ -3,6 +3,8 @@ import os
 import json
 import random
 import string
+import subprocess
+import re
 from logger import logger
 
 
@@ -67,3 +69,29 @@ def validate_config(expected):
         logger.debug(f"config: {config}")
     for param in expected.keys():
         assert config[param] == expected[param]
+
+
+def output_contains_note(output, note):
+    logger.info(f"Searching for {note} in:\n{output}")
+    regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
+    match = re.search(regex, output)
+    if match:
+        logger.debug(f"Found Note #{note.id} in output: {note}")
+    else:
+        logger.debug(f"Could not find Note # {note.id} in debug output\n{regex}")
+    return match
+
+
+def send_cli_command(commandline):
+    logger.info(f"Sending command {commandline}")
+    result = subprocess.run(commandline, shell=True, capture_output=False)
+    logger.debug(result)
+    assert result.returncode == 0
+
+
+def read_debug(debug_filename):
+    logger.info(f"Reading debug file {debug_filename}")
+    with open(debug_filename, "r") as output_file:
+        full_text = output_file.read()
+    logger.debug(f"\n{full_text}")
+    return full_text
