@@ -524,7 +524,7 @@ def test_search_all_notes(fixed_notes_journal, environment):
 def test_search_random_notes(random_journal, environment):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
-    # Start with populated, non-random journal
+    # Start with populated, random journal
     journal = random_journal
     notes = journal.notes
 
@@ -551,11 +551,34 @@ def test_search_random_notes(random_journal, environment):
                 assert output_contains_note(full_output, matching_note)
 
 
-def test_dummy(environment):
+def test_search_by_category(fixed_notes_journal, environment):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
-    logger.info(f"{ROOT_DIR=}")
-    logger.info(f"{HOME_DIR=}")
-    logger.info(f"{SJOURNAL_DIR=}")
-    logger.info(f"{DEBUG_OUTPUT=}")
-    logger.info(f"{sjournal_exec=}")
+    # Start with populated, random journal
+    journal = fixed_notes_journal
+    notes = journal.notes
+
+    # log all notes
+    logger.debug("\n" + "\n".join([str(note) for note in notes]))
+
+    categories = set(note.category for note in notes)
+
+    for category in categories:
+        notes_with_category = [note for note in notes if note.category == category]
+
+        logger.debug(f"For category {category}, there should be {len(notes_with_category)} notes")
+
+        for i in range(len(notes)):
+            matching_notes = [note for note in notes_with_category if str(i) in note.content]
+            logger.debug(f"If searching for '{i}' in category '{category}', there should be {len(matching_notes)} notes")
+
+            # send command
+            commandline = f"{sjournal_exec} --debug search -c {category} {i}"
+            send_cli_command(commandline)
+
+            # Read debug text into string
+            full_output = read_debug(DEBUG_OUTPUT)
+
+            # Search output text for the expected note(s)
+            for matching_note in matching_notes:
+                assert output_contains_note(full_output, matching_note)
