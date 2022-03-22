@@ -82,11 +82,13 @@ def output_contains_note(output, note):
     return match
 
 
-def send_cli_command(commandline):
+def send_cli_command(commandline, assert_okay=True):
     logger.info(f"Sending command {commandline}")
     result = subprocess.run(commandline, shell=True, capture_output=False)
     logger.debug(result)
-    assert result.returncode == 0
+    if assert_okay:
+        assert result.returncode == 0
+    return result.returncode
 
 
 def read_debug(debug_filename):
