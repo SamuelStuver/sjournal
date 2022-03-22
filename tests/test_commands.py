@@ -573,7 +573,7 @@ def test_search_by_category(fixed_notes_journal, environment):
             logger.debug(f"If searching for '{i}' in category '{category}', there should be {len(matching_notes)} notes")
 
             # send command
-            commandline = f"{sjournal_exec} --debug search -c {category} {i}"
+            commandline = f'{sjournal_exec} --debug search -c "{category}" "{i}"'
             send_cli_command(commandline)
 
             # Read debug text into string

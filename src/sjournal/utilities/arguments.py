@@ -69,6 +69,8 @@ def parse_args():
     # Search command
     parser_search = subparsers.add_parser('search', help='List notes matching search term')
     parser_search.add_argument('search_criteria', nargs='+', action='store', type=str)
+    parser_search.add_argument('-c', '--category', nargs='?', default=None, action='store',
+                               help="Search only within a specific category")
 
     args = parser.parse_args()
     parsers = {
