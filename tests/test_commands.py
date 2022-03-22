@@ -599,95 +599,95 @@ def test_search_by_category(fixed_notes_journal, environment):
                 assert output_contains_note(full_output, matching_note)
 
 
-# @pytest.mark.xfail
-# @pytest.mark.parametrize('command, should_pass', [
-#         ("list -c '<CATEGORY>'", True),
-#         ("list -c '<CATEGORY>", False),
-#         ("list -c <CATEGORY>'", False),
-#         ("list -c <CATEGORY>\"", False),
-#
-#         ("search -c '<CATEGORY>' \" \"", True),
-#         ("search -c '<CATEGORY> \" \"", False),
-#         ("search -c <CATEGORY>' \" \"", False),
-#         ("search -c <CATEGORY>\" \" \"", False),
-# ])
-# def test_quotation_marks_withspace(split_categories_journal, environment, command, should_pass):
-#     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
-#
-#     # Start with populated, random journal
-#     journal = split_categories_journal
-#     notes = journal.notes
-#
-#     # log all notes
-#     logger.debug("\n" + "\n".join([str(note) for note in notes]))
-#
-#     categories = ["Category X", "Category 0"]
-#     for category in categories:
-#         notes_with_category = [note for note in notes if note.category == category]
-#         logger.debug(f"For category {category}, there should be {len(notes_with_category)} notes")
-#
-#         commandline = rf"{sjournal_exec} --debug {command.replace('<CATEGORY>', category)}"
-#         logger.debug(commandline)
-#
-#         # send command
-#         returncode = send_cli_command(commandline, assert_okay=False)
-#         if should_pass:
-#             assert returncode == 0
-#
-#             # Read debug text into string
-#             full_output = read_debug(DEBUG_OUTPUT)
-#             logger.debug(full_output)
-#
-#             # Search output text for the expected note(s)
-#             for matching_note in notes_with_category:
-#                 assert output_contains_note(full_output, matching_note)
-#
-#         else:
-#             logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
-#             assert returncode != 0
-#
-#
-# @pytest.mark.xfail
-# @pytest.mark.parametrize('command, should_pass', [
-#         ("list -c 'General'", True),
-#         ("list -c 'General", False),
-#         ("list -c General'", False),
-#         ("list -c General\"", True),
-#
-#         ("search -c 'General' \" \"", True),
-#         ("search -c 'General \" \"", False),
-#         ("search -c General' \" \"", False),
-#         ("search -c General\" \" \"", True),
-# ])
-# def test_quotation_marks_nospace(split_categories_journal, environment, command, should_pass):
-#     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
-#
-#     # Start with populated, random journal
-#     journal = split_categories_journal
-#     notes = journal.notes
-#
-#     # log all notes
-#     logger.debug("\n" + "\n".join([str(note) for note in notes]))
-#
-#     notes_with_category = [note for note in notes if note.category == "General"]
-#     logger.debug(f"For category General, there should be {len(notes_with_category)} notes")
-#
-#     commandline = rf"{sjournal_exec} --debug {command}"
-#     logger.debug(commandline)
-#
-#     # send command
-#     returncode = send_cli_command(commandline, assert_okay=False)
-#     if should_pass:
-#         assert returncode == 0
-#
-#         # Read debug text into string
-#         full_output = read_debug(DEBUG_OUTPUT)
-#         logger.debug(full_output)
-#
-#         # Search output text for the expected note(s)
-#         for matching_note in notes_with_category:
-#             assert output_contains_note(full_output, matching_note)
-#
-#     else:
-#         logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
-#         assert returncode != 0
+@pytest.mark.xfail
+@pytest.mark.parametrize('command, should_pass', [
+        ("list -c '<CATEGORY>'", True),
+        ("list -c '<CATEGORY>", False),
+        ("list -c <CATEGORY>'", False),
+        ("list -c <CATEGORY>\"", False),
+
+        ("search -c '<CATEGORY>' \" \"", True),
+        ("search -c '<CATEGORY> \" \"", False),
+        ("search -c <CATEGORY>' \" \"", False),
+        ("search -c <CATEGORY>\" \" \"", False),
+])
+def test_quotation_marks_withspace(split_categories_journal, environment, command, should_pass):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
+    # Start with populated, random journal
+    journal = split_categories_journal
+    notes = journal.notes
+
+    # log all notes
+    logger.debug("\n" + "\n".join([str(note) for note in notes]))
+
+    categories = ["Category X", "Category 0"]
+    for category in categories:
+        notes_with_category = [note for note in notes if note.category == category]
+        logger.debug(f"For category {category}, there should be {len(notes_with_category)} notes")
+
+        commandline = rf"{sjournal_exec} --debug {command.replace('<CATEGORY>', category)}"
+        logger.debug(commandline)
+
+        # send command
+        returncode = send_cli_command(commandline, assert_okay=False)
+        if should_pass:
+            assert returncode == 0
+
+            # Read debug text into string
+            full_output = read_debug(DEBUG_OUTPUT)
+            logger.debug(full_output)
+
+            # Search output text for the expected note(s)
+            for matching_note in notes_with_category:
+                assert output_contains_note(full_output, matching_note)
+
+        else:
+            logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
+            assert returncode != 0
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize('command, should_pass', [
+        ("list -c 'General'", True),
+        ("list -c 'General", False),
+        ("list -c General'", False),
+        ("list -c General\"", True),
+
+        ("search -c 'General' \" \"", True),
+        ("search -c 'General \" \"", False),
+        ("search -c General' \" \"", False),
+        ("search -c General\" \" \"", True),
+])
+def test_quotation_marks_nospace(split_categories_journal, environment, command, should_pass):
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
+    # Start with populated, random journal
+    journal = split_categories_journal
+    notes = journal.notes
+
+    # log all notes
+    logger.debug("\n" + "\n".join([str(note) for note in notes]))
+
+    notes_with_category = [note for note in notes if note.category == "General"]
+    logger.debug(f"For category General, there should be {len(notes_with_category)} notes")
+
+    commandline = rf"{sjournal_exec} --debug {command}"
+    logger.debug(commandline)
+
+    # send command
+    returncode = send_cli_command(commandline, assert_okay=False)
+    if should_pass:
+        assert returncode == 0
+
+        # Read debug text into string
+        full_output = read_debug(DEBUG_OUTPUT)
+        logger.debug(full_output)
+
+        # Search output text for the expected note(s)
+        for matching_note in notes_with_category:
+            assert output_contains_note(full_output, matching_note)
+
+    else:
+        logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
+        assert returncode != 0
