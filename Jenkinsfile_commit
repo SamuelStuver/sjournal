@@ -26,11 +26,12 @@ pipeline {
             sh "ls"
             sh "ls reports"
             sh "echo RUNNING JUNIT PLUGIN"
-            junit (
-                testResults: 'reports/report.xml',
-                checksName: 'Pytest Execution',
-                keepLongStdio: true,
-            )
+            withChecks('Pytest Execution') {
+                junit (
+                    testResults: 'reports/report.xml',
+                    keepLongStdio: true,
+                )
+            }
             publishHTML (target : [allowMissing: false,
                         alwaysLinkToLastBuild: true,
                         keepAll: false,
