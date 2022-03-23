@@ -62,8 +62,7 @@ def validate_config(expected):
     SJOURNAL_DIR = os.path.join(HOME_DIR, 'sjournal')
     config_path = os.path.join(SJOURNAL_DIR, "sjournal_config.json")
 
-    logger.info(f"Verify that the correct values are used in config: {config_path}")
-    logger.debug(f"expected: {expected}")
+    logger.info(f"Confirm that the config file matches: {expected}")
     with open(config_path, "r") as config_file:
         config = json.load(config_file)
         logger.debug(f"config: {config}")
@@ -72,23 +71,70 @@ def validate_config(expected):
 
 
 def output_contains_note(output, note):
-    logger.info(f"Searching for {note} in:\n{output}")
+    # Maybe filter out newlines for the search?
+    logger.info(f"Searching for [{note}] in output")
     regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
-    match = re.search(regex, output)
+    output_raw = output.replace('\n', '')
+
+    match = re.search(regex, output_raw)
     if match:
-        logger.debug(f"Found Note #{note.id} in output: {note}")
+        indices = match.span()
+        match_text = output_raw[:indices[0]] + "[[[" + match.group(0) + "]]]" + output_raw[indices[1]:]
+        logger.info(f"Found Note #{note.id} in output @ {indices}")
+        logger.debug(match_text)
     else:
-        logger.debug(f"Could not find Note # {note.id} in debug output\n{regex}")
+        logger.warning(f"Failed to find Note # {note.id} in debug output:")
+        logger.warning(f"[{note}]")
+        logger.warning(output_raw)
+
     return match
 
 
-def send_cli_command(commandline, assert_okay=True):
+def output_contains_text(output, text):
+    # Maybe filter out newlines for the search?
+    logger.info(f'Searching for "{text}" in output')
+
+    regex = rf"{text}"
+    output_raw = output.replace('\n', '')
+    match = re.search(regex, output_raw)
+
+    if match:
+        indices = match.span()
+        match_text = output_raw[:indices[0]] + "[[[" + match.group(0) + "]]]" + output_raw[indices[1]:]
+        logger.info(f"Found text in output @ {indices}:")
+        logger.debug(match_text)
+    else:
+        logger.warning(f'Failed to find "{text}" in output:')
+        logger.warning(output_raw)
+
+    return match
+
+
+def send_cli_command(commandline, assert_okay=True, user_input=None):
+    """
+
+    :param commandline: string cli command to send
+    :param assert_okay: If True, an error will be thrown if the command fails.
+                         If False, the result will be returned and the code, stdout, and stderr can be used
+                         All will be logged regardless
+    :param user_input: String user input to capture and include in the process call
+    :return: result: the CompletedProcess object including result code and stdout/stderr strings
+    """
+
     logger.info(f"Sending command {commandline}")
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    if assert_okay:
-        assert result.returncode == 0
-    return result.returncode
+    try:
+        result = subprocess.run(commandline, check=assert_okay, input=user_input,
+                                shell=False, capture_output=True, text=True)
+    except subprocess.CalledProcessError as command_error:
+        logger.info(f"RETURN CODE {command_error.returncode}")
+        logger.debug(f"STDOUT: \n{command_error.stdout}")
+        logger.debug(f"STDERR: \n{command_error.stderr}")
+        raise command_error
+
+    logger.info(f"RETURN CODE {result.returncode} ({commandline})")
+    logger.debug(f"STDOUT: \n{result.stdout}")
+    logger.debug(f"STDERR: \n{result.stderr}")
+    return result
 
 
 def read_debug(debug_filename):
