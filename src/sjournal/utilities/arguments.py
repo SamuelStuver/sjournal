@@ -39,6 +39,8 @@ def parse_args():
 
     # Erase command
     parser_erase = subparsers.add_parser('erase', help='Delete all notes from the current journal')
+    parser_erase.add_argument('--force', action='store_true',
+                               help="Don't ask for confirmation before erasing notes")
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')

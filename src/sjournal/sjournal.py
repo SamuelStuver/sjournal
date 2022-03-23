@@ -296,7 +296,12 @@ class SJournal:
 
     def erase(self):
         self.console.print(f'This will erase ALL notes in the journal "{self.journal_name}"')
-        confirmation = Confirm.ask("Are you sure?")
+        if self.args.force:
+            self.console.print('Used "--force"; skipping confirmation.')
+            confirmation = True
+        else:
+            confirmation = Confirm.ask("Are you sure?")
+
         if confirmation:
             cursor = self.new_cursor()
             cursor.execute('DELETE FROM notes')
