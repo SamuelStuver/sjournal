@@ -112,7 +112,7 @@ def output_contains_text(output, text):
 
 def send_cli_command(commandline, assert_okay=True, user_input=None):
     """
-
+    Logging wrapper around the subprocess.run() function with simplified options
     :param commandline: string cli command to send
     :param assert_okay: If True, an error will be thrown if the command fails.
                          If False, the result will be returned and the code, stdout, and stderr can be used
