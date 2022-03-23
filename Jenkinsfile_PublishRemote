@@ -17,7 +17,7 @@ pipeline {
             steps {
                 // Run Tests
                 sh 'mkdir -p reports'
-                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-publish'
+                sh 'docker run -t -v $WORKSPACE/reports:/app/reports sjournal-docker-publish --color=yes'
             }
         }
     }
