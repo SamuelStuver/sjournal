@@ -5,6 +5,7 @@ import random
 import string
 import subprocess
 import re
+from platform import system
 from logger import logger
 
 
@@ -124,13 +125,22 @@ def send_cli_command(commandline, assert_okay=True, user_input=None):
     """
 
     logger.info(f"Sending command {commandline}")
-    try:
-        result = subprocess.run(commandline, check=assert_okay, input=user_input, shell=False, capture_output=True, text=True)
-    except subprocess.CalledProcessError as command_error:
-        logger.info(f"RETURN CODE {command_error.returncode}")
-        logger.debug(f"STDOUT: \n{command_error.stdout}")
-        logger.debug(f"STDERR: \n{command_error.stderr}")
-        raise command_error
+    if system() == 'Linux':
+        try:
+            result = subprocess.run([commandline.split()], check=assert_okay, input=user_input, shell=False, capture_output=True, text=True)
+        except subprocess.CalledProcessError as command_error:
+            logger.info(f"RETURN CODE {command_error.returncode}")
+            logger.debug(f"STDOUT: \n{command_error.stdout}")
+            logger.debug(f"STDERR: \n{command_error.stderr}")
+            raise command_error
+    else:
+        try:
+            result = subprocess.run(commandline, check=assert_okay, input=user_input, shell=False, capture_output=True, text=True)
+        except subprocess.CalledProcessError as command_error:
+            logger.info(f"RETURN CODE {command_error.returncode}")
+            logger.debug(f"STDOUT: \n{command_error.stdout}")
+            logger.debug(f"STDERR: \n{command_error.stderr}")
+            raise command_error
 
     logger.info(f"RETURN CODE {result.returncode} ({commandline})")
     logger.debug(f"STDOUT: \n{result.stdout}")

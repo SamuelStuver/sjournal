@@ -5,6 +5,7 @@ pipeline {
     }
     options {
         disableConcurrentBuilds()
+        ansiColor('xterm')
     }
     stages {
         stage('Build and Publish to PyPI') {
