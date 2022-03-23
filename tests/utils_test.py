@@ -75,7 +75,10 @@ def output_contains_note(output, note):
     # Maybe filter out newlines for the search?
     logger.info(f"Searching for [{note}] in output")
 
-    regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}".replace("\\", "\\\\")
+    words = [note.content.split()]
+    # Just search for the first word, middle word, and last word of note content
+    first_word, middle_word, last_word = (words[0], words[len(words) // 2], words[-1])
+    regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{first_word}.*{middle_word}.*{last_word}".replace("\\", "\\\\")
     output_raw = output.replace('\n', '')
 
     match = re.search(regex, output_raw)
