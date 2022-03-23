@@ -5,6 +5,7 @@ pipeline {
     }
     options {
         disableConcurrentBuilds()
+        ansiColor('xterm')
     }
     stages {
         stage('Build') {
@@ -16,7 +17,7 @@ pipeline {
             steps {
                 // Run Tests
                 sh 'mkdir -p reports'
-                sh 'docker run -v $WORKSPACE/reports:/app/reports sjournal-docker-localrepo python -m pytest --test_environment=local_repo'
+                sh 'docker run -t -v $WORKSPACE/reports:/app/reports sjournal-docker-localrepo python -m pytest --color=yes --test_environment=local_repo'
             }
         }
     }
