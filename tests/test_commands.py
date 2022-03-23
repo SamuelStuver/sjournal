@@ -456,7 +456,7 @@ def test_restore(random_journal, environment, command, action):
             original_journal.args = args
             original_journal.run()
     else:
-        args = argparse.Namespace(command=action, debug=False)
+        args = argparse.Namespace(command=action, debug=False, force=True)
         original_journal.args = args
         original_journal.run()
 
