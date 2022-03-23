@@ -12,12 +12,10 @@ from utils_test import backup_file, delete_file, \
     validate_note, validate_config, \
     random_string, random_hex_color, \
     send_cli_command, read_debug, \
-    output_contains_note
+    output_contains_note, output_contains_text
 from logger import logger
 
-# Suite of testing to validate the CLI interface for sjournal using subprocess to call the application
-
-
+# Suite of tests to validate the CLI interface for sjournal using subprocess to call the application
 
 n_gen_notes = 21
 n_gen_categories = 3
@@ -154,12 +152,22 @@ def test_load(clean_journal, environment):
     # Load a new journal
     logger.info("Load a new journal named 'delete_this_journal'")
     commandline = f'{sjournal_exec} load delete_this_journal'
-    result = subprocess.run(commandline, shell=True, capture_output=True)
-    logger.debug(f"stdout: {result.stdout}")
-    assert result.returncode == 0
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
+    expected_journal_file = os.path.join(SJOURNAL_DIR, "journals", "delete_this_journal.db")
+    assert output_contains_text(result.stdout, rf"Set journal to {expected_journal_file}")
 
     # Verify that the correct config info is used with new journal
     validate_config({"journal_dir": os.path.join(SJOURNAL_DIR, "journals"), "journal_name": "delete_this_journal"})
+
+    # Load an existing journal
+    logger.info("Load an existing journal: 'automated_test'")
+    commandline = f'{sjournal_exec} load automated_test'
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
+    expected_journal_file = os.path.join(SJOURNAL_DIR, "journals", "automated_test.db")
+    assert output_contains_text(result.stdout, rf"Set journal to {expected_journal_file}")
+
+    # Verify that the correct config info is used with new journal
+    validate_config({"journal_dir": os.path.join(SJOURNAL_DIR, "journals"), "journal_name": "automated_test"})
 
     # Delete the new journal
     logger.info("Delete the new journal file")
@@ -167,51 +175,48 @@ def test_load(clean_journal, environment):
     delete_file(new_journal_file)
 
 
-@pytest.mark.parametrize('command, expected', [
+@pytest.mark.parametrize('command, expected_data', [
         (f'add ""',
-         {"category":"General", "content":"", "id":0}),
+         {"category":"General", "content":"", "id":0, "style":""}),
 
         (f'add Hello World',
-         {"category":"General", "content":"Hello World", "id":0}),
+         {"category":"General", "content":"Hello World", "id":0, "style":""}),
         (f'add "Hello World"',
-         {"category":"General", "content":"Hello World", "id":0}),
+         {"category":"General", "content":"Hello World", "id":0, "style":""}),
 
         (f'add -c "Test" Hello World',
-         {"category":"Test", "content":"Hello World", "id":0}),
+         {"category":"Test", "content":"Hello World", "id":0, "style":""}),
         (f'add -c "Test" "Hello World"',
-         {"category":"Test", "content":"Hello World", "id":0}),
+         {"category":"Test", "content":"Hello World", "id":0, "style":""}),
 
         (f'add -s "bold red" "Hello World"',
-         {"category":"General", "content":"[bold red]Hello World[/]", "id":0}),
+         {"category":"General", "content":"Hello World", "id":0, "style":"bold red"}),
 ])
-def test_add_note(clean_journal, environment, command, expected):
+def test_add_note(clean_journal, environment, command, expected_data):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+
     # Start with clean empty journal
     journal = clean_journal
-    for i in range(5):
+    for i in range(10):
+
         # Add note via commandline
         logger.info(f"Add note {i} via commandline")
-
         commandline = f"{sjournal_exec} " + command
-
-        logger.debug(f"commandline: {commandline}")
-        result = subprocess.run(commandline, shell=True, capture_output=False)
-        assert result.returncode == 0
+        result = send_cli_command(commandline, assert_okay=True, user_input=None)
+        assert result.stdout == result.stderr == ""
 
         # Journal should have one more note
         logger.info(f"Journal should have {i+1} note(s)")
         assert journal.length == i+1
 
-        # Verify that the note has the correct data
-        expected_i = expected
-        expected_i["id"] = i
-        validate_note(journal.notes[-1], expected_i)
+        # Verify that the latest note has the correct data
+        expected_data_i = expected_data
+        expected_data_i["id"] = i
+        validate_note(journal.latest, expected_data_i)
 
 
 def test_edit_note(fixed_notes_journal, environment):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
-    for e in environment:
-        logger.info(f"{e=}")
 
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
@@ -222,29 +227,37 @@ def test_edit_note(fixed_notes_journal, environment):
 
         # Execute Command with subsequent input
         logger.info(f"EDIT NOTE {note.id}")
-        try:
-            # depending on environment, sjournal_exec might only be one item instead of 2. sjournal vs python run.py
-            process_args = [sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()]
-        except IndexError:
-            process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
+        # try:
+        #     # depending on environment, sjournal_exec might only be one item instead of 2. sjournal vs python run.py
+        #     process_args = [sjournal_exec.split()[0], sjournal_exec.split()[1], 'edit', f'{note.id}'.strip()]
+        # except IndexError:
+        #     process_args = [sjournal_exec, 'edit', f'{note.id}'.strip()]
+        #
+        # if system() == 'Linux':
+        #     process_args = [sjournal_exec + ' edit ' + f'{note.id}'.strip()]
+        #
+        # logger.info(process_args)
+        #
+        # proc = subprocess.Popen(process_args, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        # result = proc.communicate(input=b'EDITED')
+        #
+        # logger.debug(proc)
+        # logger.debug(result)
+        #
+        # # Confirm successful command
+        # assert proc.returncode == 0, proc
 
-        if system() == 'Linux':
-            process_args = [sjournal_exec + ' edit ' + f'{note.id}'.strip()]
-
-        logger.info(process_args)
-
-        proc = subprocess.Popen(process_args, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        result = proc.communicate(input=b'EDITED')
-
-        logger.debug(proc)
-        logger.debug(result)
-
-        # Confirm successful command
-        assert proc.returncode == 0, proc
+        commandline = f'{sjournal_exec} edit {note.id}'
+        user_input = "EDITED"
+        result = send_cli_command(commandline, assert_okay=True, user_input=user_input)
+        expected_output = f'Editing Note #{note.id}.*"Note {note.id}"Enter new note text.*Note {note.id}.*'
+        assert output_contains_text(result.stdout, expected_output)
 
         # Confirm that the note at note_id has been edited successfully
         expected = {"category": note.category, "content": f"EDITED", "id": note.id}
         validate_note(journal.notes[note.id], expected)
+
+    logger.debug(journal.notes)
 
 
 def test_delete_note(fixed_notes_journal, environment):
@@ -254,8 +267,8 @@ def test_delete_note(fixed_notes_journal, environment):
     journal = fixed_notes_journal
     original_notes = journal.notes
 
-    # Starting journal should have 3 notes
-    logger.info("Journal should have 3 notes")
+    # Starting journal should have {n_gen_notes} notes
+    logger.info(f"Journal should have {n_gen_notes} notes")
     assert journal.length == n_gen_notes
 
     # Delete the most recent note via the commandline until empty
@@ -264,19 +277,14 @@ def test_delete_note(fixed_notes_journal, environment):
 
         # Execute Command
         commandline = f'{sjournal_exec} delete {note.id}'
-        result = subprocess.run(commandline, shell=True, capture_output=True)
-
-        logger.debug(f"stdout: {result.stdout}")
-
-        # Confirm successful command
-        assert result.returncode == 0
+        result = send_cli_command(commandline, assert_okay=True, user_input=None)
+        assert output_contains_text(result.stdout, f"DELETED NOTE #{note.id}")
 
         # Confirm that the journal has 1 fewer note, and that the most recent note is the previous one
-        logger.debug(journal.notes)
         assert journal.length == note.id, f"# of Notes is {journal.length} after deleting note {note.id}. Expected length of {note.id}"
         if journal.length > 0:
             # Most recent note has the correct data
-            assert journal.notes[-1] == original_notes[note.id-1]
+            assert journal.latest == original_notes[note.id-1]
 
 
 @pytest.mark.parametrize('command', [
@@ -298,13 +306,13 @@ def test_delete_note(fixed_notes_journal, environment):
         'list -a -r -c',
         'list 10 -a -r -c',
 ])
-def test_list_default(random_journal, environment, command):
+def test_list_notes(random_journal, environment, command):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
     journal = random_journal
     notes = journal.notes
 
-    commandline = f"{sjournal_exec} --debug " + command
+    commandline = f"{sjournal_exec} " + command
 
     n_printed = 5
     if '-c' in command:
@@ -321,31 +329,13 @@ def test_list_default(random_journal, environment, command):
 
     # List notes via commandline with debug option
     logger.info(f"List notes via commandline")
-    logger.debug(f"commandline: {commandline}")
-    logger.debug(f"For this command, expect {n_printed} notes")
 
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    assert result.returncode == 0
-
-    # Read debug text into string
-    with open(DEBUG_OUTPUT, "r") as output_file:
-        full_text = output_file.read()
-
-    logger.debug(full_text)
-
-    # Search output text for table headers
-    header = rf".*ID.*Timestamp.*Category.*Content.*"
-    match = re.search(header, full_text)
-    assert match, f"Could not find header in debug output"
-    logger.debug(match.group(0))
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
+    assert output_contains_text(result.stdout, rf"ID.*Timestamp.*Category.*Content")
 
     # Search output text for each note
     for i, note in enumerate(notes[-n_printed:]):
-        regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
-        match = re.search(regex, full_text)
-        assert match, f"Could not find Note # {note.id} in debug output\n{regex}"
-        logger.debug(match.group(0))
+        assert output_contains_note(result.stdout, note)
 
 
 @pytest.mark.parametrize('command', [
@@ -360,28 +350,16 @@ def test_categories(random_journal, environment, command):
     expected_categories = list(set([note.category for note in notes]))
 
     # List categories via command line
-    commandline = f"{sjournal_exec} --debug " + command
+    commandline = f"{sjournal_exec} " + command
     if "-s" in command:
         commandline += f' "{expected_categories[0]}"'
         expected_categories = [expected_categories[0]]
 
-    logger.debug(commandline)
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    assert result.returncode == 0
-
-    # Read debug text into string
-    with open(DEBUG_OUTPUT, "r") as output_file:
-        full_text = output_file.read()
-
-    logger.debug(full_text)
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
 
     # Search output text for each category
     for category in expected_categories:
-        regex = rf"{category}"
-        match = re.search(regex, full_text)
-        assert match, f"Could not find category {category} in debug output"
-        logger.debug(match.group(0))
+        assert output_contains_text(result.stdout, category)
 
 
 @pytest.mark.parametrize('command', [
@@ -402,10 +380,9 @@ def test_backup(random_journal, environment, command):
     else:
         expected_backup_filename = "backup_automated_test"
 
-    logger.debug(commandline)
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    assert result.returncode == 0
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
+    expected_output = rf"BACKING UP.*.dbTO FILE.*{expected_backup_filename}.*.db"
+    assert output_contains_text(result.stdout, expected_output)
 
     # Verify that the backup exists
     backup_dir = os.path.join(SJOURNAL_DIR, "journals", "backups", "automated_test")
@@ -413,8 +390,8 @@ def test_backup(random_journal, environment, command):
 
     with os.scandir(backup_dir) as dir_contents:
         match = [entry for entry in dir_contents if expected_backup_filename in entry.name]
-
     logger.debug(match)
+
     # Should be only one match since we started with no backup
     assert len(match) == 1
     backup_entry = match[0]
@@ -461,10 +438,10 @@ def test_restore(random_journal, environment, command, action):
 
     # Backup the journal
     if "-f" in command:
-        filename = command.split()[-1]
+        backup_filename = command.split()[-1]
     else:
-        filename = None
-    args = argparse.Namespace(command='backup', debug=False, filename=filename)
+        backup_filename = None
+    args = argparse.Namespace(command='backup', debug=False, filename=backup_filename)
     original_journal.args = args
     original_journal.run()
 
@@ -487,10 +464,9 @@ def test_restore(random_journal, environment, command, action):
 
     # Restore the journal
     commandline = f"{sjournal_exec} " + command
-    logger.debug(commandline)
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    assert result.returncode == 0
+    result = send_cli_command(commandline, assert_okay=True, user_input=None)
+    expected_output = rf"RESTORING BACKUP FROM.*.dbREPLACING.*{original_journal.journal_name}.*.db"
+    assert output_contains_text(result.stdout, expected_output)
 
     # Confirm that the notes are back
     for i, note in enumerate(original_journal.notes):
@@ -498,19 +474,27 @@ def test_restore(random_journal, environment, command, action):
         assert note == original_notes[i], f"New Note does not equal old Note:\nNew: {note}\nOld: {original_notes[i]}"
 
 
-def test_erase(random_journal, environment):
+@pytest.mark.parametrize('user_input', [
+        'y',
+        'n',
+        'Y',
+        'N'
+])
+def test_erase(random_journal, environment, user_input):
     ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
 
     journal = random_journal
     assert journal.length == n_gen_notes
 
     # Erase the notebook via the command line
-    commandline = f"{sjournal_exec} --debug erase"
-    logger.debug(commandline)
-    result = subprocess.run(commandline, shell=True, capture_output=False)
-    logger.debug(result)
-    assert result.returncode == 0
-    assert journal.length == 0
+    commandline = f"{sjournal_exec} erase"
+    result = send_cli_command(commandline, assert_okay=True, user_input=user_input)
+    if user_input == 'y' or user_input == 'Y':
+        assert output_contains_text(result.stdout, "All notes deleted.")
+        assert journal.length == 0
+    elif user_input == 'n' or user_input == 'N':
+        assert output_contains_text(result.stdout, "No notes were deleted.")
+        assert journal.length == n_gen_notes
 
 
 def test_search_all_notes(fixed_notes_journal, environment):
@@ -525,15 +509,12 @@ def test_search_all_notes(fixed_notes_journal, environment):
         logger.debug(f"For number {i}, there should be {len(notes_with_number)} notes that match")
 
         # search for each note by number
-        commandline = f"{sjournal_exec} --debug search {i}"
-        send_cli_command(commandline)
-
-        # Read debug text into string
-        full_output = read_debug(DEBUG_OUTPUT)
+        commandline = f"{sjournal_exec} search {i}"
+        result = send_cli_command(commandline)
 
         # Confirm that the command output contains the expected note(s)
         for matching_note in notes_with_number:
-            assert output_contains_note(full_output, matching_note)
+            assert output_contains_note(result.stdout, matching_note)
 
 
 def test_search_random_notes(random_journal, environment):
@@ -545,7 +526,7 @@ def test_search_random_notes(random_journal, environment):
 
     for i, note in enumerate(notes):
         # workaround until style is split from content - just gets the raw note content
-        raw_content = note.content.split(']')[1].split('[')[0]
+        raw_content = note.content# .split(']')[1].split('[')[0]
 
         # search for the first, middle, and last word in the note and confirm that matching notes are found
         words = raw_content.split()
@@ -555,15 +536,12 @@ def test_search_random_notes(random_journal, environment):
             logger.debug(f"For word {word}, there should be {len(notes_with_word)} notes that match")
 
             # send command
-            commandline = f"{sjournal_exec} --debug search {word}"
-            send_cli_command(commandline)
-
-            # Read debug text into string
-            full_output = read_debug(DEBUG_OUTPUT)
+            commandline = f"{sjournal_exec} search {word}"
+            result = send_cli_command(commandline)
 
             # Search output text for the expected note(s)
             for matching_note in notes_with_word:
-                assert output_contains_note(full_output, matching_note)
+                assert output_contains_note(result.stdout, matching_note)
 
 
 def test_search_by_category(fixed_notes_journal, environment):
@@ -588,15 +566,12 @@ def test_search_by_category(fixed_notes_journal, environment):
             logger.debug(f"If searching for '{i}' in category '{category}', there should be {len(matching_notes)} notes")
 
             # send command
-            commandline = f'{sjournal_exec} --debug search -c "{category}" "{i}"'
-            send_cli_command(commandline)
-
-            # Read debug text into string
-            full_output = read_debug(DEBUG_OUTPUT)
+            commandline = f'{sjournal_exec} search -c "{category}" "{i}"'
+            result = send_cli_command(commandline)
 
             # Search output text for the expected note(s)
             for matching_note in matching_notes:
-                assert output_contains_note(full_output, matching_note)
+                assert output_contains_note(result.stdout, matching_note)
 
 
 @pytest.mark.xfail
@@ -626,25 +601,20 @@ def test_quotation_marks_withspace(split_categories_journal, environment, comman
         notes_with_category = [note for note in notes if note.category == category]
         logger.debug(f"For category {category}, there should be {len(notes_with_category)} notes")
 
-        commandline = rf"{sjournal_exec} --debug {command.replace('<CATEGORY>', category)}"
-        logger.debug(commandline)
+        commandline = rf"{sjournal_exec} {command.replace('<CATEGORY>', category)}"
 
         # send command
-        returncode = send_cli_command(commandline, assert_okay=False)
         if should_pass:
-            assert returncode == 0
-
-            # Read debug text into string
-            full_output = read_debug(DEBUG_OUTPUT)
-            logger.debug(full_output)
+            result = send_cli_command(commandline, assert_okay=True)
 
             # Search output text for the expected note(s)
             for matching_note in notes_with_category:
-                assert output_contains_note(full_output, matching_note)
+                assert output_contains_note(result.stdout, matching_note)
 
         else:
-            logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
-            assert returncode != 0
+            result = send_cli_command(commandline, assert_okay=False)
+            assert result.returncode != 0
+            assert output_contains_text(result.stderr, "Invalid Category Name.")
 
 
 @pytest.mark.xfail
@@ -672,22 +642,17 @@ def test_quotation_marks_nospace(split_categories_journal, environment, command,
     notes_with_category = [note for note in notes if note.category == "General"]
     logger.debug(f"For category General, there should be {len(notes_with_category)} notes")
 
-    commandline = rf"{sjournal_exec} --debug {command}"
-    logger.debug(commandline)
+    commandline = rf"{sjournal_exec} {command}"
 
     # send command
-    returncode = send_cli_command(commandline, assert_okay=False)
     if should_pass:
-        assert returncode == 0
-
-        # Read debug text into string
-        full_output = read_debug(DEBUG_OUTPUT)
-        logger.debug(full_output)
+        result = send_cli_command(commandline, assert_okay=True)
 
         # Search output text for the expected note(s)
         for matching_note in notes_with_category:
-            assert output_contains_note(full_output, matching_note)
+            assert output_contains_note(result.stdout, matching_note)
 
     else:
-        logger.debug(f"RETURN CODE FOR {command} IS: {returncode}")
-        assert returncode != 0
+        result = send_cli_command(commandline, assert_okay=False)
+        assert result.returncode != 0
+        assert output_contains_text(result.stderr, "Invalid Category Name.")

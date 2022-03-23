@@ -49,12 +49,12 @@ def random_hex_color():
 
 # VALIDATIONS
 
-def validate_note(note, expected):
+def validate_note(note, expected_data):
     logger.info("Verify that the note has the correct data")
     logger.debug(f"note: {note}")
-    logger.debug(f"expected: {expected}")
-    for param in expected.keys():
-        assert getattr(note, param) == expected[param]
+    logger.debug(f"expected data: {expected_data}")
+    for param in expected_data.keys():
+        assert getattr(note, param) == expected_data[param]
 
 
 def validate_config(expected):
@@ -73,7 +73,8 @@ def validate_config(expected):
 def output_contains_note(output, note):
     # Maybe filter out newlines for the search?
     logger.info(f"Searching for [{note}] in output")
-    regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}"
+
+    regex = rf"{note.id}.*{note.timestamp}.*{note.category}.*{note.content[14:24]}".replace("\\", "\\\\")
     output_raw = output.replace('\n', '')
 
     match = re.search(regex, output_raw)
@@ -94,9 +95,10 @@ def output_contains_text(output, text):
     # Maybe filter out newlines for the search?
     logger.info(f'Searching for "{text}" in output')
 
-    regex = rf"{text}"
+    regex = rf"{text}".replace("\\", "\\\\")
     output_raw = output.replace('\n', '')
     match = re.search(regex, output_raw)
+    logger.debug(output_raw)
 
     if match:
         indices = match.span()
