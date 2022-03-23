@@ -10,7 +10,7 @@ from sqlite3 import Error, connect, ProgrammingError
 import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 import pyperclip
 
 # Internal modules
@@ -295,9 +295,16 @@ class SJournal:
         self.connection.commit()
 
     def erase(self):
-        cursor = self.new_cursor()
-        cursor.execute('DELETE FROM notes')
-        self.connection.commit()
+        self.console.print(f'This will erase ALL notes in the journal "{self.journal_name}"')
+        confirmation = Confirm.ask("Are you sure?")
+        if confirmation:
+            cursor = self.new_cursor()
+            cursor.execute('DELETE FROM notes')
+            self.connection.commit()
+            self.console.print("All notes deleted.")
+        else:
+            self.console.print("No notes were deleted.")
+
 
     def search(self):
         if hasattr(self.args, 'search_criteria'):
@@ -416,6 +423,15 @@ class SJournal:
     @property
     def length(self):
         return self._get_length()
+
+    @property
+    def latest(self):
+        cursor = self.new_cursor()
+        query = "SELECT * FROM notes ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
+        item = cursor.fetchone()
+        self.close_connection()
+        return Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
 
     def _get_length(self):
         return len(self.notes)
