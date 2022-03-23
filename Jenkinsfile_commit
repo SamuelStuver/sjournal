@@ -18,6 +18,12 @@ pipeline {
                 // Run Tests
                 sh 'mkdir -p reports'
                 sh 'docker run -t -v $WORKSPACE/reports:/app/reports sjournal-docker-localrepo python -m pytest --color=yes --test_environment=local_repo'
+                sh "echo RUNNING JUNIT PLUGIN"
+                junit (
+                    testResults: 'reports/report.xml',
+                    checksName: 'Pytest Execution',
+                    keepLongStdio: true,
+                )
             }
         }
     }
@@ -25,8 +31,6 @@ pipeline {
         always {
             sh "ls"
             sh "ls reports"
-            sh "echo RUNNING JUNIT PLUGIN"
-            junit 'reports/report.xml'
             publishHTML (target : [allowMissing: false,
                         alwaysLinkToLastBuild: true,
                         keepAll: false,
