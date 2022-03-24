@@ -7,7 +7,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
-    parser.add_argument('-d', '--debug', action='store_true', help="Output to reports/debug.log instead of stdout")
     parser.add_argument('-v', '--version', action='store_true', help="Show sjournal information")
 
     # Add command

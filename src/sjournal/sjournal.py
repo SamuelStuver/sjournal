@@ -36,13 +36,9 @@ class SJournal:
 
         # self.create_connection()
         self.table = Table(title=self.journal_name)
-        self.setup_table()
+        self.setup_print_table()
 
-    def setup_table(self):
-        self.table.add_column("ID", style="cyan")
-        self.table.add_column("Timestamp")
-        self.table.add_column("Category", style="bold green")
-        self.table.add_column("Content", style="white")
+    # Internal methods and properties
 
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
@@ -53,6 +49,41 @@ class SJournal:
                 return getattr(self, self.args.command)
         else:
             return self.list
+
+    @property
+    def notes(self):
+        return self._get_notes()
+
+    @property
+    def length(self):
+        return self._get_length()
+
+    @property
+    def latest(self):
+        cursor = self.new_cursor()
+        query = "SELECT * FROM notes ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
+        item = cursor.fetchone()
+        self.close_connection()
+        return Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4])
+
+    def _get_length(self):
+        return len(self.notes)
+
+    def _get_notes(self):
+        query = "SELECT * FROM notes"
+        cursor = self.new_cursor()
+        cursor.execute(query)
+        items = cursor.fetchall()
+        notes = []
+        for item in items:
+            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"),
+                              style=item[4]))
+        self.close_connection()
+
+        return notes
+
+    # Database methods
 
     def create_connection(self):
         try:
@@ -72,37 +103,7 @@ class SJournal:
             self.create_connection()
             return self.connection.cursor()
 
-    def run(self):
-
-        self.create_connection()
-
-        if not self.table_exists("notes"):
-            self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text, style text")
-        else:
-            self.fix_table_for_styles("notes")
-
-        action = self.handle_args()
-
-        if self.args.debug:
-            self.console.print(self.args)
-            debug_file = os.path.join(self.user_home_dir, "sjournal", "reports", "debug.log")
-
-            # Make the reports directory in ~/sjournal/ if it does not exist
-            if not os.path.isdir(os.path.dirname(debug_file)):
-                os.makedirs(os.path.dirname(debug_file))
-            self.console.print(f"debug output at {debug_file}")
-
-            with open(debug_file, "wt") as debug_log:
-                self.console = Console(file=debug_log, width=100)
-                if action:
-                    action()
-        else:
-            if action:
-                action()
-
-        self.close_connection()
-
-    def table_exists(self, table_name):
+    def database_table_exists(self, table_name):
         cursor = self.new_cursor()
         cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
         # if the count is 1, then table exists
@@ -111,7 +112,7 @@ class SJournal:
         else:
             return False
 
-    def create_table(self, name, table_string):
+    def create_database_table(self, name, table_string):
         query = f"CREATE TABLE {name}({table_string})"
         cursor = self.new_cursor()
         cursor.execute(query)
@@ -129,6 +130,22 @@ class SJournal:
         except OperationalError:
             self.console.print("Old journal detected. Fixing tables")
             cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN style")
+
+    # Display Table Methods
+
+    def setup_print_table(self):
+        self.table.add_column("ID", style="cyan")
+        self.table.add_column("Timestamp")
+        self.table.add_column("Category", style="bold green")
+        self.table.add_column("Content", style="white")
+
+    def insert_into_print_table(self, note):
+        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), note.styled_content)
+
+    def show_print_table(self):
+        self.console.print(self.table)
+
+    # CLI Commands
 
     def add_gui(self):
         sg.theme('DarkGrey')
@@ -197,12 +214,6 @@ class SJournal:
         note = Note(most_recent_id+1, note_data["category"], note_data["content"], style=note_style)
         self.insert_into_database_table("notes", note)
         self.connection.commit()
-
-    def insert_into_print_table(self, note):
-        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), note.styled_content)
-
-    def show_print_table(self):
-        self.console.print(self.table)
 
     def edit(self):
 
@@ -322,7 +333,6 @@ class SJournal:
         else:
             self.console.print("No notes were deleted.")
 
-
     def search(self):
         if hasattr(self.args, 'search_criteria'):
             regex = f"{self.args.search_criteria[0]}"
@@ -433,37 +443,21 @@ class SJournal:
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
 
-    @property
-    def notes(self):
-        return self._get_notes()
+    def run(self):
 
-    @property
-    def length(self):
-        return self._get_length()
+        self.create_connection()
 
-    @property
-    def latest(self):
-        cursor = self.new_cursor()
-        query = "SELECT * FROM notes ORDER BY id DESC LIMIT 1"
-        cursor.execute(query)
-        item = cursor.fetchone()
+        if not self.database_table_exists("notes"):
+            self.create_database_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text, style text")
+        else:
+            self.fix_table_for_styles("notes")
+
+        action = self.handle_args()
+
+        if action:
+                action()
+
         self.close_connection()
-        return Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4])
-
-    def _get_length(self):
-        return len(self.notes)
-
-    def _get_notes(self):
-        query = "SELECT * FROM notes"
-        cursor = self.new_cursor()
-        cursor.execute(query)
-        items = cursor.fetchall()
-        notes = []
-        for item in items:
-            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4]))
-        self.close_connection()
-
-        return notes
 
 
 class Note:

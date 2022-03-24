@@ -1,18 +1,14 @@
 import pytest
-import subprocess
 import argparse
 import os
 import random
-import re
 import json
 import shutil
-from platform import system
 from src.sjournal import SJournal
 from utils_test import backup_file, delete_file, \
     validate_note, validate_config, \
     random_string, random_hex_color, \
-    send_cli_command, read_debug, \
-    output_contains_note, output_contains_text
+    send_cli_command, output_contains_note, output_contains_text
 from logger import logger
 
 # Suite of tests to validate the CLI interface for sjournal using subprocess to call the application
@@ -24,11 +20,11 @@ n_gen_styles = 5
 
 @pytest.fixture(scope="function")
 def clean_journal(environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
-    # Make the reports directory in ~/sjournal/ if it does not exist
-    if not os.path.isdir(os.path.dirname(DEBUG_OUTPUT)):
-        os.makedirs(os.path.dirname(DEBUG_OUTPUT))
+    # # Make the reports directory in ~/sjournal/ if it does not exist
+    # if not os.path.isdir(os.path.dirname(DEBUG_OUTPUT)):
+    #     os.makedirs(os.path.dirname(DEBUG_OUTPUT))
 
     logger.info(f"setup clean journal at {os.path.join(HOME_DIR, 'sjournal', 'journals', 'automated_test.db')}")
     # backup current config file if one exists
@@ -135,7 +131,7 @@ def random_journal(clean_journal):
 
 
 def test_load(clean_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with clean empty journal
     journal = clean_journal
@@ -193,7 +189,7 @@ def test_load(clean_journal, environment):
          {"category":"General", "content":"Hello World", "id":0, "style":"bold red"}),
 ])
 def test_add_note(clean_journal, environment, command, expected_data):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with clean empty journal
     journal = clean_journal
@@ -216,7 +212,7 @@ def test_add_note(clean_journal, environment, command, expected_data):
 
 
 def test_edit_note(fixed_notes_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
@@ -261,7 +257,7 @@ def test_edit_note(fixed_notes_journal, environment):
 
 
 def test_delete_note(fixed_notes_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with a journal that contains a few notes
     journal = fixed_notes_journal
@@ -307,7 +303,7 @@ def test_delete_note(fixed_notes_journal, environment):
         'list 10 -a -r -c',
 ])
 def test_list_notes(random_journal, environment, command):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     journal = random_journal
     notes = journal.notes
@@ -343,7 +339,7 @@ def test_list_notes(random_journal, environment, command):
         'categories -s',
 ])
 def test_categories(random_journal, environment, command):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     journal = random_journal
     notes = journal.notes
@@ -367,7 +363,7 @@ def test_categories(random_journal, environment, command):
         'backup -f delete_this_backup',
 ])
 def test_backup(random_journal, environment, command):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated journal
     original_journal = random_journal
@@ -430,7 +426,7 @@ def test_backup(random_journal, environment, command):
         # ('restore -f delete_this_backup', 'delete -j'),
 ])
 def test_restore(random_journal, environment, command, action):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated journal
     original_journal = random_journal
@@ -481,7 +477,7 @@ def test_restore(random_journal, environment, command, action):
         'N'
 ])
 def test_erase(random_journal, environment, user_input):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     journal = random_journal
     assert journal.length == n_gen_notes
@@ -498,7 +494,7 @@ def test_erase(random_journal, environment, user_input):
 
 
 def test_search_all_notes(fixed_notes_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated, non-random journal
     journal = fixed_notes_journal
@@ -518,7 +514,7 @@ def test_search_all_notes(fixed_notes_journal, environment):
 
 
 def test_search_random_notes(random_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated, random journal
     journal = random_journal
@@ -545,7 +541,7 @@ def test_search_random_notes(random_journal, environment):
 
 
 def test_search_by_category(fixed_notes_journal, environment):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated, random journal
     journal = fixed_notes_journal
@@ -587,7 +583,7 @@ def test_search_by_category(fixed_notes_journal, environment):
         ("search -c <CATEGORY>\" \" \"", False),
 ])
 def test_quotation_marks_withspace(split_categories_journal, environment, command, should_pass):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated, random journal
     journal = split_categories_journal
@@ -630,7 +626,7 @@ def test_quotation_marks_withspace(split_categories_journal, environment, comman
         ("search -c General\" \" \"", True),
 ])
 def test_quotation_marks_nospace(split_categories_journal, environment, command, should_pass):
-    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, DEBUG_OUTPUT, sjournal_exec = environment
+    ROOT_DIR, HOME_DIR, SJOURNAL_DIR, sjournal_exec = environment
 
     # Start with populated, random journal
     journal = split_categories_journal

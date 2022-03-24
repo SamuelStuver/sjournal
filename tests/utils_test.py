@@ -149,11 +149,3 @@ def send_cli_command(commandline, assert_okay=True, user_input=None):
     logger.debug(f"STDOUT: \n{result.stdout}")
     logger.debug(f"STDERR: \n{result.stderr}")
     return result
-
-
-def read_debug(debug_filename):
-    logger.info(f"Reading debug file {debug_filename}")
-    with open(debug_filename, "r") as output_file:
-        full_text = output_file.read()
-    logger.debug(f"\n{full_text}")
-    return full_text
