@@ -204,7 +204,6 @@ usage: sjournal [-h] [-d] [-v] {add,backup,categories,delete,edit,erase,help,lis
 
 options:
   -h, --help            show this help message and exit
-  -d, --debug           Output to reports/debug.log instead of stdout
   -v, --version         Show sjournal information
 
 Commands:

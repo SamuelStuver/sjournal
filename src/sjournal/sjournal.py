@@ -4,13 +4,14 @@ import re
 import os
 import shutil
 from datetime import datetime
-from sqlite3 import Error, connect, ProgrammingError
+from sqlite3 import Error, connect, ProgrammingError, OperationalError
 
 # External Libraries
 import PySimpleGUI as sg
 from rich.table import Table
 from rich.console import Console
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
+from rich.text import Text
 import pyperclip
 
 # Internal modules
@@ -35,13 +36,9 @@ class SJournal:
 
         # self.create_connection()
         self.table = Table(title=self.journal_name)
-        self.setup_table()
+        self.setup_print_table()
 
-    def setup_table(self):
-        self.table.add_column("ID", style="cyan")
-        self.table.add_column("Timestamp")
-        self.table.add_column("Category", style="bold green")
-        self.table.add_column("Content", style="white")
+    # Internal methods and properties
 
     def handle_args(self):
         # If a command was specified, use it. Otherwise, assume List command
@@ -52,6 +49,41 @@ class SJournal:
                 return getattr(self, self.args.command)
         else:
             return self.list
+
+    @property
+    def notes(self):
+        return self._get_notes()
+
+    @property
+    def length(self):
+        return self._get_length()
+
+    @property
+    def latest(self):
+        cursor = self.new_cursor()
+        query = "SELECT * FROM notes ORDER BY id DESC LIMIT 1"
+        cursor.execute(query)
+        item = cursor.fetchone()
+        self.close_connection()
+        return Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4])
+
+    def _get_length(self):
+        return len(self.notes)
+
+    def _get_notes(self):
+        query = "SELECT * FROM notes"
+        cursor = self.new_cursor()
+        cursor.execute(query)
+        items = cursor.fetchall()
+        notes = []
+        for item in items:
+            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"),
+                              style=item[4]))
+        self.close_connection()
+
+        return notes
+
+    # Database methods
 
     def create_connection(self):
         try:
@@ -71,35 +103,7 @@ class SJournal:
             self.create_connection()
             return self.connection.cursor()
 
-    def run(self):
-
-        self.create_connection()
-
-        if not self.table_exists("notes"):
-            self.create_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text")
-
-        action = self.handle_args()
-
-        if self.args.debug:
-            self.console.print(self.args)
-            debug_file = os.path.join(self.user_home_dir, "sjournal", "reports", "debug.log")
-
-            # Make the reports directory in ~/sjournal/ if it does not exist
-            if not os.path.isdir(os.path.dirname(debug_file)):
-                os.makedirs(os.path.dirname(debug_file))
-            self.console.print(f"debug output at {debug_file}")
-
-            with open(debug_file, "wt") as debug_log:
-                self.console = Console(file=debug_log, width=100)
-                if action:
-                    action()
-        else:
-            if action:
-                action()
-
-        self.close_connection()
-
-    def table_exists(self, table_name):
+    def database_table_exists(self, table_name):
         cursor = self.new_cursor()
         cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{table_name}'")
         # if the count is 1, then table exists
@@ -108,7 +112,7 @@ class SJournal:
         else:
             return False
 
-    def create_table(self, name, table_string):
+    def create_database_table(self, name, table_string):
         query = f"CREATE TABLE {name}({table_string})"
         cursor = self.new_cursor()
         cursor.execute(query)
@@ -116,8 +120,32 @@ class SJournal:
 
     def insert_into_database_table(self, table_name, note):
         cursor = self.new_cursor()
-        cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content) VALUES (:id, :timestamp, :category, :content)", note.dict)
+        cursor.execute(f"INSERT INTO {table_name} (id, timestamp, category, content, style) VALUES (:id, :timestamp, :category, :content, :style)", note.dict)
         self.connection.commit()
+
+    def fix_table_for_styles(self, table_name):
+        cursor = self.new_cursor()
+        try:
+            cursor.execute(f"SELECT style FROM {table_name}")
+        except OperationalError:
+            self.console.print("Old journal detected. Fixing tables")
+            cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN style")
+
+    # Display Table Methods
+
+    def setup_print_table(self):
+        self.table.add_column("ID", style="cyan")
+        self.table.add_column("Timestamp")
+        self.table.add_column("Category", style="bold green")
+        self.table.add_column("Content", style="white")
+
+    def insert_into_print_table(self, note):
+        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), note.styled_content)
+
+    def show_print_table(self):
+        self.console.print(self.table)
+
+    # CLI Commands
 
     def add_gui(self):
         sg.theme('DarkGrey')
@@ -168,12 +196,13 @@ class SJournal:
             else:
                 exit()
         note_content = ' '.join(self.args.content)
-        if self.args.style:
-            note_content = f"[{self.args.style}]{note_content}[/]"
-        else:
-            note_content = note_content
+        note_style = self.args.style
+        # if self.args.style:
+        #     note_content = f"[{self.args.style}]{note_content}[/]"
+        # else:
+        #     note_content = note_content
 
-        note_data = {"category": self.args.category, "content": note_content}
+        note_data = {"category": self.args.category, "content": note_content, "style":note_style}
 
         cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
 
@@ -182,15 +211,9 @@ class SJournal:
         except TypeError:
             most_recent_id = -1
 
-        note = Note(most_recent_id+1, note_data["category"], note_data["content"])
+        note = Note(most_recent_id+1, note_data["category"], note_data["content"], style=note_style)
         self.insert_into_database_table("notes", note)
         self.connection.commit()
-
-    def insert_into_print_table(self, note):
-        self.table.add_row(str(note.id), str(note.timestamp), str(note.category), note.content)
-
-    def show_print_table(self):
-        self.console.print(self.table)
 
     def edit(self):
 
@@ -202,8 +225,8 @@ class SJournal:
             cursor.execute(f"SELECT id FROM notes ORDER BY id DESC LIMIT 1")
             id_to_edit = cursor.fetchone()[0]
 
-        cursor.execute(f"SELECT category, content, timestamp FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
-        old_category, old_content, old_timestamp = cursor.fetchone()
+        cursor.execute(f"SELECT category, content, timestamp, style FROM notes WHERE id={id_to_edit} ORDER BY id DESC LIMIT 1")
+        old_category, old_content, old_timestamp, old_style = cursor.fetchone()
 
         try:
             pyperclip.copy(old_content)
@@ -214,7 +237,7 @@ class SJournal:
 
         new_content = Prompt.ask("Enter new note text", default=old_content)
 
-        new_note = Note(id_to_edit, old_category, new_content)
+        new_note = Note(id_to_edit, old_category, new_content, style=old_style)
         new_note.timestamp = old_timestamp
         cursor.execute(f'DELETE FROM notes WHERE id={id_to_edit}')
         self.insert_into_database_table("notes", new_note)
@@ -241,7 +264,7 @@ class SJournal:
         if hasattr(self.args, "reverse") and self.args.reverse:
             items_to_show = items_to_show[::-1]
         for item in items_to_show:
-            note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
+            note = Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4])
             self.insert_into_print_table(note)
 
         self.show_print_table()
@@ -295,9 +318,20 @@ class SJournal:
         self.connection.commit()
 
     def erase(self):
-        cursor = self.new_cursor()
-        cursor.execute('DELETE FROM notes')
-        self.connection.commit()
+        self.console.print(f'This will erase ALL notes in the journal "{self.journal_name}"')
+        if self.args.force:
+            self.console.print('Used "--force"; skipping confirmation.')
+            confirmation = True
+        else:
+            confirmation = Confirm.ask("Are you sure?")
+
+        if confirmation:
+            cursor = self.new_cursor()
+            cursor.execute('DELETE FROM notes')
+            self.connection.commit()
+            self.console.print("All notes deleted.")
+        else:
+            self.console.print("No notes were deleted.")
 
     def search(self):
         if hasattr(self.args, 'search_criteria'):
@@ -321,7 +355,7 @@ class SJournal:
             content = item[3]
             match = re.search(regex.lower(), content.lower())
             if match:
-                note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"))
+                note = Note(id, category, content, date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S"), style=item[4])
                 self.insert_into_print_table(note)
 
         self.show_print_table()
@@ -409,39 +443,44 @@ class SJournal:
         self.journal_dir = config["journal_dir"]
         self.journal_name = config["journal_name"]
 
-    @property
-    def notes(self):
-        return self._get_notes()
+    def run(self):
 
-    @property
-    def length(self):
-        return self._get_length()
+        self.create_connection()
 
-    def _get_length(self):
-        return len(self.notes)
+        if not self.database_table_exists("notes"):
+            self.create_database_table("notes", "id integer PRIMARY KEY, timestamp text, category text, content text, style text")
+        else:
+            self.fix_table_for_styles("notes")
 
-    def _get_notes(self):
-        query = "SELECT * FROM notes"
-        cursor = self.new_cursor()
-        cursor.execute(query)
-        items = cursor.fetchall()
-        notes = []
-        for item in items:
-            notes.append(Note(item[0], item[2], item[3], date_time=datetime.strptime(item[1], "%m-%d-%y %H:%M:%S")))
+        action = self.handle_args()
+
+        if action:
+                action()
+
         self.close_connection()
-
-        return notes
 
 
 class Note:
-    def __init__(self, id, category, content, date_time=None):
+    def __init__(self, id, category, content, style="", date_time=None):
         self.id = id
         self.category = category
         self.content = content
+
+        if style is None:
+            self.style = ""
+        else:
+            self.style = style
+
+        if self.style == "":
+            self.styled_content = Text.from_markup(self.content)
+        else:
+            self.styled_content = Text(self.content, style=self.style)
+
         if not date_time:
             self.date_time = datetime.now()
         else:
             self.date_time = date_time
+
         self.timestamp = datetime.strftime(self.date_time, "%m-%d-%y %H:%M:%S")
 
     @property
@@ -450,12 +489,13 @@ class Note:
             "id": self.id,
             "category": self.category,
             "content": self.content,
+            "style": self.style,
             "timestamp": self.timestamp
         }
 
     @property
     def values(self):
-        return [self.id, self.timestamp, self.category, self.content]
+        return [self.id, self.timestamp, self.category, self.content, self.style]
 
     def __str__(self):
         return f"[{self.id}] [{datetime.strftime(self.date_time, '%m-%d-%Y %H:%M:%S')}] [{self.category}] - {self.content}"

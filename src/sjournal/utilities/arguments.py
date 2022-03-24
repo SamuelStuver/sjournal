@@ -7,7 +7,6 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest='command', help='Commands', title='Commands')
-    parser.add_argument('-d', '--debug', action='store_true', help="Output to reports/debug.log instead of stdout")
     parser.add_argument('-v', '--version', action='store_true', help="Show sjournal information")
 
     # Add command
@@ -39,6 +38,8 @@ def parse_args():
 
     # Erase command
     parser_erase = subparsers.add_parser('erase', help='Delete all notes from the current journal')
+    parser_erase.add_argument('--force', action='store_true',
+                               help="Don't ask for confirmation before erasing notes")
 
     # Help command
     parser_help = subparsers.add_parser('help', help='Display help text')
