@@ -26,7 +26,7 @@ pipeline {
             sh "ls"
             sh "ls reports"
             sh "echo RUNNING JUNIT PLUGIN"
-            withChecks('Pytest Execution') {
+            withChecks('Pytest Execution - Remote Publish') {
                 junit (
                     testResults: 'reports/report.xml',
                     keepLongStdio: true,
