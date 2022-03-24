@@ -26,16 +26,7 @@ pipeline {
             sh "ls"
             sh "ls reports"
 
-            script { try {echo "BRANCH_NAME:        $BRANCH_NAME"} catch (Exception e) {echo "BRANCH_NAME:        NOT SET "" + e.toString()} }
-            script { try {echo "BRANCH_IS_PRIMARY:  $BRANCH_IS_PRIMARY"} catch (Exception e) {echo "BRANCH_IS_PRIMARY:  NOT SET "" + e.toString()} }
-            script { try {echo "CHANGE_ID:          $CHANGE_ID"} catch (Exception e) {echo "CHANGE_ID:          NOT SET "" + e.toString()} }
-            script { try {echo "CHANGE_TITLE:       $CHANGE_TITLE"} catch (Exception e) {echo "CHANGE_TITLE:       NOT SET "" + e.toString()} }
-            script { try {echo "CHANGE_TARGET:      $CHANGE_TARGET"} catch (Exception e) {echo "CHANGE_TARGET:      NOT SET "" + e.toString()} }
-            script { try {echo "CHANGE_BRANCH:      $CHANGE_BRANCH"} catch (Exception e) {echo "CHANGE_BRANCH:      NOT SET "" + e.toString()} }
-            script { try {echo "BUILD_NUMBER:       $BUILD_NUMBER"} catch (Exception e) {echo "BUILD_NUMBER:       NOT SET "" + e.toString()} }
-            script { try {echo "BUILD_DISPLAY_NAME: $BUILD_DISPLAY_NAME"} catch (Exception e) {echo "BUILD_DISPLAY_NAME: NOT SET "" + e.toString()} }
-            script { try {echo "JOB_NAME:           $JOB_NAME"} catch (Exception e) {echo "JOB_NAME:           NOT SET "" + e.toString()} }
-            script { try {echo "JOB_BASE_NAME:      $JOB_BASE_NAME"} catch (Exception e) {echo "JOB_BASE_NAME:      NOT SET "" + e.toString()} }
+            sh 'printenv'
 
             sh "echo RUNNING JUNIT PLUGIN"
             withChecks('Pytest Execution - Local Repo') {
