@@ -25,8 +25,20 @@ pipeline {
         always {
             sh "ls"
             sh "ls reports"
+
+            sh "echo BRANCH_NAME:        $BRANCH_NAME"
+            sh "echo BRANCH_IS_PRIMARY:  $BRANCH_IS_PRIMARY"
+            sh "echo CHANGE_ID:          $CHANGE_ID"
+            sh "echo CHANGE_TITLE:       $CHANGE_TITLE"
+            sh "echo CHANGE_TARGET:      $CHANGE_TARGET"
+            sh "echo CHANGE_BRANCH:      $CHANGE_BRANCH"
+            sh "echo BUILD_NUMBER:       $BUILD_NUMBER"
+            sh "echo BUILD_DISPLAY_NAME: $BUILD_DISPLAY_NAME"
+            sh "echo JOB_NAME:           $JOB_NAME"
+            sh "echo JOB_BASE_NAME:      $JOB_BASE_NAME"
+
             sh "echo RUNNING JUNIT PLUGIN"
-            withChecks('Pytest Execution') {
+            withChecks('Pytest Execution - Local Repo') {
                 junit (
                     testResults: 'reports/report.xml',
                     keepLongStdio: true,
