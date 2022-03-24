@@ -19,7 +19,6 @@ Sjournal commands can be invoked using either `sjournal` or `sj`
 If using Sjournal for the first time, a blank journal called "notes" will be automatically created:
 ```bash
 > sjournal
-
 No config file found. Creating new one at <HOME_DIR>/sjournal/sjournal_config.json
 
                  notes
