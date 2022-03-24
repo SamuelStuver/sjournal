@@ -26,16 +26,16 @@ pipeline {
             sh "ls"
             sh "ls reports"
 
-            sh "if [ $BRANCH_NAME ];        then echo BRANCH_NAME:        $BRANCH_NAME ;        else echo BRANCH_NAME:        NOT SET ; fi"
-            sh "if [ $BRANCH_IS_PRIMARY ];  then echo BRANCH_IS_PRIMARY:  $BRANCH_IS_PRIMARY ;  else echo BRANCH_IS_PRIMARY:  NOT SET ; fi"
-            sh "if [ $CHANGE_ID ];          then echo CHANGE_ID:          $CHANGE_ID ;          else echo CHANGE_ID:          NOT SET ; fi"
-            sh "if [ $CHANGE_TITLE ];       then echo CHANGE_TITLE:       $CHANGE_TITLE ;       else echo CHANGE_TITLE:       NOT SET ; fi"
-            sh "if [ $CHANGE_TARGET ];      then echo CHANGE_TARGET:      $CHANGE_TARGET ;      else echo CHANGE_TARGET:      NOT SET ; fi"
-            sh "if [ $CHANGE_BRANCH ];      then echo CHANGE_BRANCH:      $CHANGE_BRANCH ;      else echo CHANGE_BRANCH:      NOT SET ; fi"
-            sh "if [ $BUILD_NUMBER ];       then echo BUILD_NUMBER:       $BUILD_NUMBER ;       else echo BUILD_NUMBER:       NOT SET ; fi"
-            sh "if [ $BUILD_DISPLAY_NAME ]; then echo BUILD_DISPLAY_NAME: $BUILD_DISPLAY_NAME ; else echo BUILD_DISPLAY_NAME: NOT SET ; fi"
-            sh "if [ $JOB_NAME ];           then echo JOB_NAME:           $JOB_NAME ;           else echo JOB_NAME:           NOT SET ; fi"
-            sh "if [ $JOB_BASE_NAME ];      then echo JOB_BASE_NAME:      $JOB_BASE_NAME ;      else echo JOB_BASE_NAME:      NOT SET ; fi"
+            script { try {echo "BRANCH_NAME:        $BRANCH_NAME"} catch (Exception e) {echo "BRANCH_NAME:        NOT SET "" + e.toString()} }
+            script { try {echo "BRANCH_IS_PRIMARY:  $BRANCH_IS_PRIMARY"} catch (Exception e) {echo "BRANCH_IS_PRIMARY:  NOT SET "" + e.toString()} }
+            script { try {echo "CHANGE_ID:          $CHANGE_ID"} catch (Exception e) {echo "CHANGE_ID:          NOT SET "" + e.toString()} }
+            script { try {echo "CHANGE_TITLE:       $CHANGE_TITLE"} catch (Exception e) {echo "CHANGE_TITLE:       NOT SET "" + e.toString()} }
+            script { try {echo "CHANGE_TARGET:      $CHANGE_TARGET"} catch (Exception e) {echo "CHANGE_TARGET:      NOT SET "" + e.toString()} }
+            script { try {echo "CHANGE_BRANCH:      $CHANGE_BRANCH"} catch (Exception e) {echo "CHANGE_BRANCH:      NOT SET "" + e.toString()} }
+            script { try {echo "BUILD_NUMBER:       $BUILD_NUMBER"} catch (Exception e) {echo "BUILD_NUMBER:       NOT SET "" + e.toString()} }
+            script { try {echo "BUILD_DISPLAY_NAME: $BUILD_DISPLAY_NAME"} catch (Exception e) {echo "BUILD_DISPLAY_NAME: NOT SET "" + e.toString()} }
+            script { try {echo "JOB_NAME:           $JOB_NAME"} catch (Exception e) {echo "JOB_NAME:           NOT SET "" + e.toString()} }
+            script { try {echo "JOB_BASE_NAME:      $JOB_BASE_NAME"} catch (Exception e) {echo "JOB_BASE_NAME:      NOT SET "" + e.toString()} }
 
             sh "echo RUNNING JUNIT PLUGIN"
             withChecks('Pytest Execution - Local Repo') {
